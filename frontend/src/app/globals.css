@@ -1,0 +1,389 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ====================================================================
+   SOFT NEO-BRUTALISM SYSTEM - 6 EYE-FRIENDLY THEME PALETTES
+   1. Paper White (Classic Light)
+   2. Charcoal Matte (Classic Dark)
+   3. Matcha Sage (Eye-Care Green)
+   4. Warm Sand Latte (Earthy Reading Mode)
+   5. Soft Lavender Mist (Pastel Creative)
+   6. Nordic Midnight (Deep Slate Dark)
+   ==================================================================== */
+
+:root,
+[data-theme="charcoal-matte"],
+[data-theme="dark"],
+.dark {
+  --neo-bg: #0D0D0D;
+  --neo-surface: #161616;
+  --neo-surface-hover: #1E1E1E;
+  --neo-text: #F4F4F0;
+  --neo-text-muted: #A1A1AA;
+  --neo-border: #3F3F46;
+  --neo-border-active: #EAEAEA;
+  --neo-shadow: #27272A;
+  --neo-accent: #D9F99D;
+  --neo-accent-text: #0D0D0D;
+  --neo-input-bg: #111111;
+  --pattern-opacity: 0.05;
+}
+
+[data-theme="paper-white"],
+[data-theme="light"],
+.light {
+  --neo-bg: #F4F4F0;
+  --neo-surface: #FFFFFF;
+  --neo-surface-hover: #FAFAF8;
+  --neo-text: #121212;
+  --neo-text-muted: #52525B;
+  --neo-border: #121212;
+  --neo-border-active: #121212;
+  --neo-shadow: #121212;
+  --neo-accent: #FFE66D;
+  --neo-accent-text: #121212;
+  --neo-input-bg: #FFFFFF;
+  --pattern-opacity: 0.07;
+}
+
+[data-theme="matcha-sage"] {
+  --neo-bg: #EBF3E8;
+  --neo-surface: #F9FBF8;
+  --neo-surface-hover: #F0F6EE;
+  --neo-text: #1B2A1E;
+  --neo-text-muted: #4B634F;
+  --neo-border: #1B2A1E;
+  --neo-border-active: #1B2A1E;
+  --neo-shadow: #1B2A1E;
+  --neo-accent: #A3D9A5;
+  --neo-accent-text: #1B2A1E;
+  --neo-input-bg: #FFFFFF;
+  --pattern-opacity: 0.08;
+}
+
+[data-theme="warm-sand"] {
+  --neo-bg: #F3ECE3;
+  --neo-surface: #FFFDF9;
+  --neo-surface-hover: #F8F3EC;
+  --neo-text: #2C221E;
+  --neo-text-muted: #6B5950;
+  --neo-border: #2C221E;
+  --neo-border-active: #2C221E;
+  --neo-shadow: #2C221E;
+  --neo-accent: #E6B89C;
+  --neo-accent-text: #2C221E;
+  --neo-input-bg: #FFFFFF;
+  --pattern-opacity: 0.08;
+}
+
+[data-theme="soft-lavender"] {
+  --neo-bg: #EEF0FF;
+  --neo-surface: #FFFFFF;
+  --neo-surface-hover: #F6F7FF;
+  --neo-text: #1E1B4B;
+  --neo-text-muted: #56518A;
+  --neo-border: #1E1B4B;
+  --neo-border-active: #1E1B4B;
+  --neo-shadow: #1E1B4B;
+  --neo-accent: #C4B5FD;
+  --neo-accent-text: #1E1B4B;
+  --neo-input-bg: #FFFFFF;
+  --pattern-opacity: 0.08;
+}
+
+[data-theme="nordic-midnight"] {
+  --neo-bg: #0F172A;
+  --neo-surface: #1E293B;
+  --neo-surface-hover: #283548;
+  --neo-text: #F1F5F9;
+  --neo-text-muted: #94A3B8;
+  --neo-border: #475569;
+  --neo-border-active: #93C5FD;
+  --neo-shadow: #020617;
+  --neo-accent: #93C5FD;
+  --neo-accent-text: #0F172A;
+  --neo-input-bg: #141E33;
+  --pattern-opacity: 0.07;
+}
+
+/* Text Size Variations */
+[data-size="compact"] {
+  font-size: 13px;
+}
+[data-size="normal"] {
+  font-size: 14px;
+}
+[data-size="large"] {
+  font-size: 15px;
+}
+
+body {
+  background-color: var(--neo-bg);
+  color: var(--neo-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+  letter-spacing: -0.012em;
+  position: relative;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* 5 Animated & Interactive Background Patterns */
+body[data-bg="dots"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(currentColor 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
+  opacity: var(--pattern-opacity);
+  pointer-events: none !important;
+  z-index: -10 !important;
+}
+
+body[data-bg="grid"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, currentColor 1px, transparent 1px),
+    linear-gradient(to bottom, currentColor 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: var(--pattern-opacity);
+  pointer-events: none !important;
+  z-index: -10 !important;
+  animation: bgGridPan 40s linear infinite;
+}
+
+@keyframes bgGridPan {
+  0% { background-position: 0 0; }
+  100% { background-position: 64px 64px; }
+}
+
+body[data-bg="shapes"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, currentColor 18px, transparent 20px),
+    linear-gradient(45deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%);
+  background-size: 80px 80px, 120px 120px;
+  opacity: calc(var(--pattern-opacity) * 0.7);
+  pointer-events: none !important;
+  z-index: -10 !important;
+  animation: bgFloatShapes 60s ease-in-out infinite alternate;
+}
+
+@keyframes bgFloatShapes {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-30px); }
+}
+
+body[data-bg="isometric"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: 
+    linear-gradient(30deg, currentColor 12%, transparent 12.5%, transparent 87%, currentColor 87.5%, currentColor),
+    linear-gradient(150deg, currentColor 12%, transparent 12.5%, transparent 87%, currentColor 87.5%, currentColor),
+    linear-gradient(30deg, currentColor 12%, transparent 12.5%, transparent 87%, currentColor 87.5%, currentColor),
+    linear-gradient(150deg, currentColor 12%, transparent 12.5%, transparent 87%, currentColor 87.5%, currentColor);
+  background-size: 40px 70px;
+  opacity: calc(var(--pattern-opacity) * 0.6);
+  pointer-events: none !important;
+  z-index: -10 !important;
+}
+
+body[data-bg="solid"]::before {
+  display: none !important;
+}
+
+/* Minimalist Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--neo-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--neo-border);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neo-text-muted);
+}
+
+/* ====================================================================
+   NEO-BRUTALISM TACTILE UTILITIES & COMPONENTS
+   ==================================================================== */
+
+/* Neo-Brutalist Card */
+.neo-card {
+  background-color: var(--neo-surface);
+  border: 2px solid var(--neo-border);
+  box-shadow: 4px 4px 0px var(--neo-shadow);
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.15s ease;
+}
+
+.neo-card-interactive {
+  background-color: var(--neo-surface);
+  border: 2px solid var(--neo-border);
+  box-shadow: 4px 4px 0px var(--neo-shadow);
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.neo-card-interactive:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px var(--neo-shadow);
+  border-color: var(--neo-border-active);
+}
+
+.neo-card-interactive:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0px 0px 0px transparent !important;
+}
+
+/* Neo-Brutalist Buttons */
+.neo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  border: 2px solid var(--neo-border);
+  box-shadow: 3px 3px 0px var(--neo-shadow);
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.neo-btn:hover {
+  transform: translate(-1.5px, -1.5px);
+  box-shadow: 5px 5px 0px var(--neo-shadow);
+  border-color: var(--neo-border-active);
+}
+
+.neo-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px transparent !important;
+}
+
+.neo-btn-primary {
+  background-color: var(--neo-accent);
+  color: var(--neo-accent-text);
+}
+
+.neo-btn-primary:hover {
+  opacity: 0.95;
+}
+
+.neo-btn-secondary {
+  background-color: var(--neo-surface);
+  color: var(--neo-text);
+}
+
+.neo-btn-secondary:hover {
+  background-color: var(--neo-surface-hover);
+}
+
+/* Neo Input */
+.neo-input {
+  background-color: var(--neo-input-bg);
+  border: 2px solid var(--neo-border);
+  color: var(--neo-text);
+  box-shadow: 2px 2px 0px var(--neo-shadow);
+  transition: all 0.15s ease;
+}
+
+.neo-input:focus {
+  outline: none;
+  border-color: var(--neo-border-active);
+  box-shadow: 4px 4px 0px var(--neo-shadow);
+}
+
+/* Neo Badge */
+.neo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 2px solid var(--neo-border);
+  box-shadow: 2px 2px 0px var(--neo-shadow);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+/* Striped Barberpole Progress Bar */
+@keyframes barberpole {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 40px 0;
+  }
+}
+
+.striped-progress-bar {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.2) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 28px 28px;
+  animation: barberpole 0.8s linear infinite;
+}
+
+/* Legacy solid compatibility aliases */
+.solid-card {
+  background-color: var(--neo-surface);
+  border: 2px solid var(--neo-border);
+  box-shadow: 4px 4px 0px var(--neo-shadow);
+}
+
+.solid-input {
+  background-color: var(--neo-input-bg);
+  border: 2px solid var(--neo-border);
+  color: var(--neo-text);
+}
+
+.solid-btn-primary {
+  background-color: var(--neo-accent);
+  color: var(--neo-accent-text);
+  border: 2px solid var(--neo-border);
+  box-shadow: 3px 3px 0px var(--neo-shadow);
+}
+
+.solid-btn-secondary {
+  background-color: var(--neo-surface);
+  border: 2px solid var(--neo-border);
+  color: var(--neo-text);
+  box-shadow: 3px 3px 0px var(--neo-shadow);
+}
+
+/* Print Styles */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-area {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

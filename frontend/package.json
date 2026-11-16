@@ -1,0 +1,53 @@
+{
+  "name": "glass-downloader-studio",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@tiptap/extension-color": "^2.8.0",
+    "@tiptap/extension-highlight": "^2.27.3",
+    "@tiptap/extension-image": "^2.8.0",
+    "@tiptap/extension-text-align": "^2.8.0",
+    "@tiptap/extension-text-style": "^2.8.0",
+    "@tiptap/extension-underline": "^2.27.3",
+    "@tiptap/pm": "^2.8.0",
+    "@tiptap/react": "^2.8.0",
+    "@tiptap/starter-kit": "^2.8.0",
+    "@types/crypto-js": "^4.2.2",
+    "@types/qrcode": "^1.5.6",
+    "canvas-confetti": "^1.9.3",
+    "clsx": "^2.1.1",
+    "crypto-js": "^4.2.0",
+    "exifreader": "^4.54.0",
+    "framer-motion": "^11.11.9",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "jszip": "^3.10.2",
+    "lucide-react": "^0.453.0",
+    "next": "14.2.15",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.5.4",
+    "tesseract.js": "^7.0.0",
+    "ua-parser-js": "^1.0.38",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^20.17.0",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@types/ua-parser-js": "^0.7.39",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5.6.3"
+  }
+}
