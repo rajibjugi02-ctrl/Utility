@@ -256,7 +256,7 @@ async function extractPresetsWithUnshorten(rawText: string, source: string = 'Ca
 async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]> {
   const presets: ExtractedPreset[] = [];
 
-  // 1. Resolve canonical URL for short links
+  // 1. Resolve canonical URL in case of short links (vt.tiktok.com, vm.tiktok.com)
   let canonicalUrl = videoUrl;
   if (videoUrl.includes('vt.tiktok.com') || videoUrl.includes('vm.tiktok.com') || videoUrl.includes('/t/')) {
     try {
@@ -266,7 +266,7 @@ async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         },
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(3500),
       });
       if (headRes.url && headRes.url.includes('tiktok.com')) {
         canonicalUrl = headRes.url;
@@ -278,77 +278,83 @@ async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]
   const vMatch = cleanTargetUrl.match(/video\/(\d+)/);
   const videoId = vMatch ? vMatch[1] : '';
   const authorMatch = cleanTargetUrl.match(/@([^/?#]+)/);
-  const author = authorMatch ? authorMatch[1] : '';
+  const author = (authorMatch ? authorMatch[1] : '').toLowerCase();
 
+  if (!videoId) return presets;
+
+  // ENGINE 1: TikTok Official Web Comments API (Fast, reliable, real data)
   try {
-    const res = await fetch(`https://www.tikwm.com/api/comment/list?url=${encodeURIComponent(cleanTargetUrl)}&count=100`, {
+    const ttRes = await fetch(`https://www.tiktok.com/api/comment/list/?aid=1988&aweme_id=${videoId}&count=50`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Referer': 'https://www.tikwm.com/',
+        'Referer': 'https://www.tiktok.com/',
       },
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(4500),
       cache: 'no-store',
     });
-    const data = await res.json().catch(() => null);
-    const comments = data?.data?.comments;
-    if (comments && Array.isArray(comments)) {
-      for (const c of comments) {
-        const sourceLabel = c.is_pinned || c.author_pin
-          ? 'Ditemukan di Komentar Disematkan (Pinned)'
-          : c.is_author || (author && c.user?.unique_id === author)
-          ? `Ditemukan di Komentar Kreator (@${c.user?.unique_id || author})`
-          : 'Ditemukan di Kolom Komentar';
-        const found = await extractPresetsWithUnshorten(c.text || '', sourceLabel);
-        found.forEach((item) => {
-          if (!presets.some((p) => p.url === item.url)) {
-            presets.push(item);
-          }
-        });
-      }
 
-      // Check comment thread replies where creators often reply with presets
-      if (videoId) {
+    if (ttRes.ok) {
+      const ttData = await ttRes.json().catch(() => null);
+      const comments = ttData?.comments;
+      if (comments && Array.isArray(comments)) {
+        for (const c of comments) {
+          const cUser = (c.user?.unique_id || '').toLowerCase();
+          const isCreator = author ? cUser === author : false;
+          const sourceLabel = c.author_pin
+            ? 'Ditemukan di Komentar Disematkan (Pinned)'
+            : isCreator
+            ? `Ditemukan di Komentar Kreator (@${c.user?.unique_id})`
+            : 'Ditemukan di Kolom Komentar';
+
+          const found = await extractPresetsWithUnshorten(c.text || '', sourceLabel);
+          found.forEach((item) => {
+            if (!presets.some((p) => p.url === item.url)) {
+              presets.push(item);
+            }
+          });
+        }
+
+        // Check comment thread replies where creators reply with presets
         const threadsToCheck = comments
-          .filter((c: any) => c.reply_total > 0)
+          .filter((c: any) => (c.reply_comment_total || 0) > 0)
           .sort((a: any, b: any) => {
-            const aIsCreator = a.is_author || (author && a.user?.unique_id === author);
-            const bIsCreator = b.is_author || (author && b.user?.unique_id === author);
-            if (aIsCreator && !bIsCreator) return -1;
-            if (!aIsCreator && bIsCreator) return 1;
-
             const aHasKw = /(?:preset|xml|5mb|link|minta|am|share|bang|min|drive|bagi)/i.test(a.text || '');
             const bHasKw = /(?:preset|xml|5mb|link|minta|am|share|bang|min|drive|bagi)/i.test(b.text || '');
             if (aHasKw && !bHasKw) return -1;
             if (!aHasKw && bHasKw) return 1;
-            return (b.reply_total || 0) - (a.reply_total || 0);
+            return (b.reply_comment_total || 0) - (a.reply_comment_total || 0);
           })
-          .slice(0, 12);
+          .slice(0, 10);
 
         await Promise.allSettled(
           threadsToCheck.map(async (c: any) => {
             try {
               const rRes = await fetch(
-                `https://www.tikwm.com/api/comment/reply?video_id=${videoId}&comment_id=${c.id}`,
+                `https://www.tiktok.com/api/comment/list/reply/?aid=1988&comment_id=${c.cid}&item_id=${videoId}&count=50`,
                 {
                   headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                    'Referer': 'https://www.tikwm.com/',
+                    'Referer': 'https://www.tiktok.com/',
                   },
-                  signal: AbortSignal.timeout(4000),
+                  signal: AbortSignal.timeout(3500),
                 }
               );
-              const rData = await rRes.json().catch(() => null);
-              if (rData?.data?.comments && Array.isArray(rData.data.comments)) {
-                for (const rc of rData.data.comments) {
-                  const replyLabel = rc.is_author || (author && rc.user?.unique_id === author)
-                    ? `Ditemukan di Balasan Komentar Kreator (@${rc.user?.unique_id || author})`
-                    : 'Ditemukan di Balasan Komentar';
-                  const foundInReply = await extractPresetsWithUnshorten(rc.text || '', replyLabel);
-                  foundInReply.forEach((item) => {
-                    if (!presets.some((p) => p.url === item.url)) {
-                      presets.push(item);
-                    }
-                  });
+              if (rRes.ok) {
+                const rData = await rRes.json().catch(() => null);
+                if (rData?.comments && Array.isArray(rData.comments)) {
+                  for (const rc of rData.comments) {
+                    const rcUser = (rc.user?.unique_id || '').toLowerCase();
+                    const isRcCreator = author ? rcUser === author : false;
+                    const replyLabel = isRcCreator
+                      ? `Ditemukan di Balasan Komentar Kreator (@${rc.user?.unique_id})`
+                      : 'Ditemukan di Balasan Komentar';
+                    const foundInReply = await extractPresetsWithUnshorten(rc.text || '', replyLabel);
+                    foundInReply.forEach((item) => {
+                      if (!presets.some((p) => p.url === item.url)) {
+                        presets.push(item);
+                      }
+                    });
+                  }
                 }
               }
             } catch {}
@@ -358,49 +364,34 @@ async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]
     }
   } catch {}
 
-  // If still no presets and we have author, attempt author bio scraping
-  if (presets.length === 0 && author && author !== 'creator') {
+  // ENGINE 2: TikWM Comments Backup (if Engine 1 produced 0 presets)
+  if (presets.length === 0) {
     try {
-      const userRes = await fetch(`https://www.tikwm.com/api/user/info?unique_id=${encodeURIComponent(author)}`, {
+      const res = await fetch(`https://www.tikwm.com/api/comment/list?url=${encodeURIComponent(cleanTargetUrl)}&count=50`, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
           'Referer': 'https://www.tikwm.com/',
         },
-        signal: AbortSignal.timeout(3500),
+        signal: AbortSignal.timeout(3000),
       });
-      const userData = await userRes.json().catch(() => null);
-      const bioUrl = userData?.data?.user?.bio_url || userData?.data?.bio_url;
-      const signature = userData?.data?.user?.signature || userData?.data?.signature || '';
-      if (bioUrl) {
-        const bioPresets = await extractPresetsWithUnshorten(bioUrl, `Ditemukan di Bio Profil Kreator (@${author})`);
-        bioPresets.forEach((bp) => {
-          if (!presets.some((p) => p.url === bp.url)) {
-            presets.push(bp);
-          }
-        });
-      }
-      if (signature) {
-        const sigPresets = await extractPresetsWithUnshorten(signature, `Ditemukan di Bio Teks Kreator (@${author})`);
-        sigPresets.forEach((sp) => {
-          if (!presets.some((p) => p.url === sp.url)) {
-            presets.push(sp);
-          }
-        });
+      const data = await res.json().catch(() => null);
+      const comments = data?.data?.comments;
+      if (comments && Array.isArray(comments)) {
+        for (const c of comments) {
+          const sourceLabel = c.is_pinned || c.author_pin
+            ? 'Ditemukan di Komentar Disematkan (Pinned)'
+            : c.is_author
+            ? `Ditemukan di Komentar Kreator`
+            : 'Ditemukan di Kolom Komentar';
+          const found = await extractPresetsWithUnshorten(c.text || '', sourceLabel);
+          found.forEach((item) => {
+            if (!presets.some((p) => p.url === item.url)) {
+              presets.push(item);
+            }
+          });
+        }
       }
     } catch {}
-  }
-
-  // Fallback for @prstvall video
-  if (videoId === '7704181380061728021' || cleanTargetUrl.includes('prstvall')) {
-    const knownPresets = [
-      classifyPreset('https://alightcreative.com/am/share/u/Bzd93B7gFSdLosAwzcz3a6oAsik1/p/WV3g8yQvDm-91645a5e89657483', 'Ditemukan di Balasan Komentar Kreator (@prstvall)'),
-      classifyPreset('https://drive.google.com/file/d/1ybK5BG1PHc2v-6WNxgQJYcCvzXcj-JfZ/view?usp=drivesdk', 'Ditemukan di Balasan Komentar Kreator (@prstvall)'),
-    ];
-    knownPresets.forEach((kp) => {
-      if (!presets.some((p) => p.url === kp.url)) {
-        presets.push(kp);
-      }
-    });
   }
 
   return presets;
