@@ -1,6 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@400;600;800;900&family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Space+Grotesk:wght@400;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Global Typography Classes */
+body[data-font="plus-jakarta"], body:not([data-font]) { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+body[data-font="space-grotesk"] { font-family: 'Space Grotesk', system-ui, sans-serif; }
+body[data-font="outfit"] { font-family: 'Outfit', system-ui, sans-serif; }
+body[data-font="jetbrains-mono"] { font-family: 'JetBrains Mono', monospace; }
+body[data-font="inter"] { font-family: 'Inter', system-ui, sans-serif; }
+body[data-font="playfair"] { font-family: 'Playfair Display', serif; }
 
 /* ====================================================================
    SOFT NEO-BRUTALISM SYSTEM - 6 EYE-FRIENDLY THEME PALETTES
@@ -312,8 +322,7 @@ body[data-bg="solid"]::before {
   box-shadow: 2px 2px 0px var(--neo-shadow);
   font-size: 0.7rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
   padding: 0.2rem 0.5rem;
   border-radius: 0.375rem;
 }

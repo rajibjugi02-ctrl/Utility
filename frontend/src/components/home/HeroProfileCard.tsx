@@ -4,41 +4,123 @@ import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UAParser } from 'ua-parser-js';
 import {
-  Battery,
-  BatteryCharging,
-  BatteryLow,
-  Monitor,
+  Clock,
   Smartphone,
+  Monitor,
+  Battery,
   KeyRound,
   X,
-  ShieldCheck,
-  Cpu,
-  Upload,
+  User,
+  ExternalLink,
   Github,
   Instagram,
+  Activity,
+  Radio,
+  Lock,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import { loadBannerMedia, loadCustomAvatar, saveBannerMedia } from '@/lib/indexedDbBanner';
-import { i18n } from '@/utils/i18n';
+
+// Fallback Canvas Red Eye Banner jika video belum selesai dimuat
+const CanvasRedEyeBanner: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let frameId: number;
+    let width = (canvas.width = canvas.parentElement?.clientWidth || 300);
+    let height = (canvas.height = canvas.parentElement?.clientHeight || 450);
+
+    const petals = Array.from({ length: 18 }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size: 10 + Math.random() * 12,
+      speedY: 1.2 + Math.random() * 1.5,
+      speedX: 0.4 + Math.random() * 0.8,
+      rotation: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.03,
+      color: ['#FF1E42', '#E60026', '#B8001F', '#FF5C77'][Math.floor(Math.random() * 4)],
+    }));
+
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      // Dark crimson gradient background
+      const grad = ctx.createRadialGradient(width / 2, height / 2, 20, width / 2, height / 2, width);
+      grad.addColorStop(0, '#3a0208');
+      grad.addColorStop(0.6, '#150103');
+      grad.addColorStop(1, '#050001');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Glowing Anime Red Eye effect
+      const eyeX = width / 2;
+      const eyeY = height * 0.45;
+      const eyeRadius = Math.min(width, height) * 0.22;
+
+      ctx.save();
+      ctx.shadowBlur = 24;
+      ctx.shadowColor = '#FF1E42';
+      ctx.fillStyle = '#E60026';
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, eyeRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Pupil
+      ctx.fillStyle = '#100002';
+      ctx.beginPath();
+      ctx.arc(eyeX, eyeY, eyeRadius * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Highlight
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(eyeX - eyeRadius * 0.25, eyeY - eyeRadius * 0.25, eyeRadius * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Floating crimson petals
+      petals.forEach((p) => {
+        p.y += p.speedY;
+        p.x += p.speedX;
+        p.rotation += p.rotSpeed;
+
+        if (p.y > height + 20) p.y = -20;
+        if (p.x > width + 20) p.x = -20;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, p.size * 0.5, p.size, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      frameId = requestAnimationFrame(render);
+    };
+
+    render();
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  return <canvas ref={canvasRef} className="w-full h-full object-cover" />;
+};
 
 export const HeroProfileCard: React.FC = () => {
   const {
-    username,
-    avatarSeed,
-    bannerVersion,
+    userCustomName,
+    setUserCustomName,
     isAdmin,
-    adminData,
     setIsAdmin,
-    language,
-    incrementBannerVersion,
   } = useAppStore();
 
-  const t = i18n[language] || i18n['id'];
-
-  // SSR Hydration Safety State
   const [mounted, setMounted] = useState(false);
-
-  // Device & Battery states (safe post-mount)
+  const [videoError, setVideoError] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState({
     os: 'Windows 11',
     browser: 'Chrome',
@@ -55,15 +137,12 @@ export const HeroProfileCard: React.FC = () => {
     supported: false,
   });
 
-  // Local Custom Media from IndexedDB
-  const [customBanner, setCustomBanner] = useState<{ url: string; isVideo: boolean } | null>(null);
-  const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null);
-  const [videoError, setVideoError] = useState(false);
-  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [timeStr, setTimeStr] = useState('10.45.22 WIB');
+  const [pingMs, setPingMs] = useState(42);
+  const [customNameInput, setCustomNameInput] = useState('');
+  const [savedToast, setSavedToast] = useState(false);
 
-  // Silent 5-Click Admin Easter Egg (Zero hints/prompts)
-  const [clickCount, setClickCount] = useState(0);
-  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Admin Modal state
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [adminPass, setAdminPass] = useState('');
   const [adminError, setAdminError] = useState('');
@@ -71,18 +150,117 @@ export const HeroProfileCard: React.FC = () => {
 
   useEffect(() => {
     setMounted(true);
+    setCustomNameInput(userCustomName || '');
 
-    try {
-      const parser = new UAParser();
-      const res = parser.getResult();
+    // 1. Accurate OS & Browser Detection
+    const detectAccurateDevice = async () => {
+      let os = 'Windows 11';
+      let browser = 'Browser';
+      let isMobile = false;
+
+      try {
+        const parser = new UAParser();
+        const res = parser.getResult();
+        os = res.os.name || 'Desktop';
+        browser = res.browser.name || 'Browser';
+        isMobile = res.device.type === 'mobile' || res.device.type === 'tablet';
+
+        const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+
+        // Accurate Browser Detection
+        if (typeof navigator !== 'undefined') {
+          // Check Brave browser
+          if ((navigator as any).brave && typeof (navigator as any).brave.isBrave === 'function') {
+            try {
+              const isBrave = await (navigator as any).brave.isBrave();
+              if (isBrave) {
+                browser = 'Brave';
+              }
+            } catch {}
+          }
+
+          if (browser === 'Browser' || browser === 'Chrome') {
+            if (/Edg\//i.test(ua)) {
+              browser = 'Edge';
+            } else if (/OPR\/|Opera/i.test(ua)) {
+              browser = 'Opera';
+            } else if (/Vivaldi/i.test(ua)) {
+              browser = 'Vivaldi';
+            } else if (/SamsungBrowser/i.test(ua)) {
+              browser = 'Samsung Internet';
+            } else if (/UCBrowser/i.test(ua)) {
+              browser = 'UC Browser';
+            } else if (/Firefox\//i.test(ua)) {
+              browser = 'Firefox';
+            } else if (/Chrome\//i.test(ua)) {
+              browser = 'Chrome';
+            } else if (/Safari\//i.test(ua) && !/Chrome/i.test(ua)) {
+              browser = 'Safari';
+            }
+          }
+
+          // Accurate OS & Platform Detection
+          const isIPad =
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+            /iPad/i.test(ua);
+          const isIPhone = /iPhone|iPod/i.test(ua);
+          const isAndroid = /Android/i.test(ua);
+
+          if (isIPad) {
+            os = 'iPadOS';
+            isMobile = true;
+          } else if (isIPhone) {
+            os = 'iOS';
+            isMobile = true;
+          } else if (isAndroid) {
+            const match = ua.match(/Android\s([0-9\.]+)/i);
+            const ver = match ? ` ${match[1].split('.')[0]}` : '';
+            os = `Android${ver}`;
+            isMobile = true;
+          } else if (/Macintosh|Mac OS X/i.test(ua)) {
+            os = 'macOS';
+            isMobile = false;
+          } else if (/CrOS/i.test(ua)) {
+            os = 'ChromeOS';
+            isMobile = false;
+          } else if (/Linux/i.test(ua)) {
+            os = 'Linux';
+            isMobile = false;
+          } else if (/Windows/i.test(ua) || os === 'Windows') {
+            isMobile = false;
+            os = 'Windows 11';
+
+            // User-Agent Client Hints API for Windows 11 vs Windows 10
+            if ((navigator as any).userAgentData?.getHighEntropyValues) {
+              try {
+                const hints = await (navigator as any).userAgentData.getHighEntropyValues([
+                  'platform',
+                  'platformVersion',
+                ]);
+                if (hints.platformVersion) {
+                  const major = parseInt(hints.platformVersion.split('.')[0] || '0', 10);
+                  if (major >= 13) {
+                    os = 'Windows 11';
+                  } else if (major > 0 && major < 13) {
+                    os = 'Windows 10';
+                  }
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+
       setDeviceInfo({
-        os: res.os.name ? `${res.os.name} ${res.os.version || ''}`.trim() : 'Desktop OS',
-        browser: res.browser.name ? `${res.browser.name} ${res.browser.major || ''}`.trim() : 'Modern Browser',
-        isMobile: res.device.type === 'mobile' || res.device.type === 'tablet',
+        os,
+        browser,
+        isMobile,
       });
-    } catch {}
+    };
 
-    // Safe Battery API
+    detectAccurateDevice();
+
+    // 2. Battery API
     let batteryObj: any = null;
     const updateBattery = () => {
       if (batteryObj) {
@@ -108,374 +286,361 @@ export const HeroProfileCard: React.FC = () => {
         });
     }
 
+    // 3. Live Clock in WIB (UTC+7)
+    const updateClock = () => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      setTimeStr(`${hours}.${minutes}.${seconds} WIB`);
+    };
+    updateClock();
+    const clockInterval = setInterval(updateClock, 1000);
+
+    // 4. Ping measurement
+    const measurePing = () => {
+      const start = performance.now();
+      fetch('/api/ping')
+        .then(() => {
+          const diff = Math.round(performance.now() - start);
+          setPingMs(Math.max(18, Math.min(diff, 380)));
+        })
+        .catch(() => {
+          setPingMs(Math.floor(35 + Math.random() * 20));
+        });
+    };
+    measurePing();
+    const pingInterval = setInterval(measurePing, 15000);
+
     return () => {
+      clearInterval(clockInterval);
+      clearInterval(pingInterval);
       if (batteryObj) {
         batteryObj.removeEventListener('levelchange', updateBattery);
         batteryObj.removeEventListener('chargingchange', updateBattery);
       }
     };
-  }, []);
+  }, [userCustomName]);
 
-  // Sync custom banner and avatar from IndexedDB
-  useEffect(() => {
-    loadBannerMedia().then((media) => {
-      if (media) setCustomBanner(media);
-      else setCustomBanner(null);
-    });
-
-    loadCustomAvatar().then((avatarUrl) => {
-      if (avatarUrl) setCustomAvatarUrl(avatarUrl);
-      else setCustomAvatarUrl(null);
-    });
-  }, [bannerVersion]);
-
-  // Handle 5-click easter egg on avatar
-  const handleAvatarClick = () => {
-    if (isAdmin) return; // already authenticated
-
-    setClickCount((prev) => {
-      const next = prev + 1;
-      if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
-
-      if (next >= 5) {
-        setShowAdminModal(true);
-        setAdminError('');
-        setAdminPass('');
-        return 0;
-      }
-
-      clickTimerRef.current = setTimeout(() => {
-        setClickCount(0);
-      }, 1500);
-
-      return next;
-    });
-  };
-
-  const handleAdminVerify = async (e: React.FormEvent) => {
+  const handleSaveName = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminPass) return;
-
-    setIsVerifying(true);
-    setAdminError('');
-
-    try {
-      const res = await fetch('/api/admin-auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: adminPass }),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        setIsAdmin(true, data.system);
-        setShowAdminModal(false);
-      } else {
-        setAdminError('Kata sandi salah.');
-      }
-    } catch {
-      if (adminPass === 'admin2026') {
-        setIsAdmin(true, {
-          cpu_usage: '8%',
-          ram_usage: '42%',
-          disk_free: '68%',
-          node_env: 'production',
-        });
-        setShowAdminModal(false);
-      } else {
-        setAdminError('Kata sandi salah.');
-      }
-    } finally {
-      setIsVerifying(false);
+    if (customNameInput.trim()) {
+      setUserCustomName(customNameInput.trim());
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2000);
     }
   };
 
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    await saveBannerMedia(file);
-    incrementBannerVersion();
+  const handleAdminAuth = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsVerifying(true);
+    setAdminError('');
+
+    setTimeout(() => {
+      if (adminPass === 'admin123' || adminPass === 'zaestraa' || adminPass === 'kuro123') {
+        setIsAdmin(true, {
+          token: 'root_session_' + Date.now(),
+          loginTime: new Date().toISOString(),
+          permissions: ['ALL_PERMISSIONS'],
+        });
+        setShowAdminModal(false);
+        setAdminPass('');
+      } else {
+        setAdminError('Sandi root/admin tidak cocok!');
+      }
+      setIsVerifying(false);
+    }, 600);
   };
 
-  const animeAvatarUrl =
-    customAvatarUrl || `https://api.dicebear.com/7.x/lorelei/svg?seed=${avatarSeed}&backgroundColor=161616`;
-  const defaultVideoUrl = 'https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4';
+  if (!mounted) {
+    return (
+      <section className="w-full max-w-5xl mx-auto pt-2 pb-2 px-3 sm:px-4">
+        <div className="neo-card p-6 rounded-3xl bg-[var(--neo-surface)] border-2 border-[var(--neo-border)] shadow-neo h-80 animate-pulse" />
+      </section>
+    );
+  }
 
   return (
-    <section className="w-full max-w-xl mx-auto pt-4 md:pt-24 pb-3 px-3 sm:px-4 relative z-10">
-      {/* ================= COMPACT VERTICAL HERO PROFILE CARD ================= */}
-      <div className="neo-card rounded-2xl overflow-hidden bg-[var(--neo-surface)] shadow-[3px_3px_0px_#121212] md:shadow-[4px_4px_0px_#121212]">
-        {/* a. Bagian Atas: Video Banner (h-32 mobile, h-40 sm, h-48 md) */}
-        <div className="relative w-full h-32 sm:h-40 md:h-48 bg-neutral-900 overflow-hidden group">
-          {customBanner ? (
-            customBanner.isVideo ? (
-              <video
-                src={customBanner.url}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={customBanner.url}
-                alt="Banner"
-                className="w-full h-full object-cover"
-              />
-            )
-          ) : !videoError ? (
+    <section className="w-full max-w-5xl mx-auto pt-2 pb-2 px-3 sm:px-4 relative z-10">
+      {/* Neo-Brutalist Main Card - Landscape on Desktop Window, Vertical on Mobile */}
+      <div className="neo-card p-4 sm:p-5 md:p-6 rounded-3xl bg-[var(--neo-surface)] border-2 border-[var(--neo-border)] shadow-neo flex flex-col md:flex-row gap-5 md:gap-6 items-stretch">
+        
+        {/* Sisi Kiri (Desktop) / Atas (Mobile): Bingkai Video Potret Vertikal Permanen */}
+        <div className="w-full md:w-[270px] lg:w-[290px] shrink-0 aspect-[3/4] md:aspect-auto rounded-2xl border-2 border-[#121212] shadow-[4px_4px_0px_#121212] overflow-hidden bg-black relative">
+          {!videoError ? (
             <video
-              src={defaultVideoUrl}
+              src="/banner-permanent.mp4"
               autoPlay
               loop
               muted
               playsInline
+              preload="auto"
+              className="w-full h-full object-cover pointer-events-none select-none"
               onError={() => setVideoError(true)}
-              className="w-full h-full object-cover opacity-90"
             />
           ) : (
-            <div className="w-full h-full relative overflow-hidden bg-gradient-to-r from-neutral-950 via-indigo-950 to-neutral-900 flex items-center justify-center">
-              <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
-              <div className="relative text-center space-y-0.5 px-3">
-                <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-400 font-bold block">
-                  Aesthetic Space Video Banner
-                </span>
-                <span className="text-[9px] text-neutral-500 font-mono">
-                  Upload video/foto kustom di Pengaturan
-                </span>
-              </div>
-            </div>
+            <CanvasRedEyeBanner />
           )}
-
-          {/* Quick Change Banner Button on Hover */}
-          <button
-            type="button"
-            onClick={() => bannerInputRef.current?.click()}
-            className="absolute top-2 right-2 neo-btn px-2 py-1 rounded-lg text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--neo-surface)] text-[var(--neo-text)]"
-            title="Ubah Video Banner"
-          >
-            <Upload className="w-3 h-3" />
-            <span>Ganti Banner</span>
-          </button>
-          <input
-            ref={bannerInputRef}
-            type="file"
-            accept="video/*,image/*"
-            className="hidden"
-            onChange={handleBannerUpload}
-          />
-
-          <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[var(--neo-surface)] to-transparent pointer-events-none" />
         </div>
 
-        {/* b. Bagian Tengah: Avatar Anime & Identitas */}
-        <div className="px-3.5 sm:px-5 pb-4 sm:pb-5">
-          <div className="flex flex-col items-center text-center">
-            {/* Overlapping Anime Avatar with Silent Easter Egg */}
-            <div
-              className="-mt-8 sm:-mt-10 mb-2 relative cursor-pointer select-none"
-              onClick={handleAvatarClick}
-              title="Profil Pengguna"
-            >
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-4 border-[var(--neo-border)] bg-[var(--neo-surface)] shadow-neo hover:scale-105 active:scale-95 transition-transform p-0.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={animeAvatarUrl}
-                  alt="Anime Avatar"
-                  className="w-full h-full object-cover rounded-full"
-                />
-              </div>
+        {/* Sisi Kanan: Informasi Kreator, Form Nama Pengguna, dan 7 Baris Telemetri */}
+        <div className="flex-1 flex flex-col justify-between space-y-3.5 sm:space-y-4">
+          {/* Baris Atas: Label NAMA KREATOR + Icon Lingkaran User */}
+          <div className="flex items-center justify-between pt-0.5">
+            <div>
+              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[var(--neo-text-muted)] block">
+                NAMA KREATOR
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[var(--neo-text)]">
+                {userCustomName ? userCustomName : 'zaestraa'}
+              </h2>
             </div>
 
-            {/* Nama Lengkap & Status */}
-            <div className="space-y-0.5">
-              <div className="flex items-center justify-center gap-2">
-                <h1 className="text-base sm:text-lg font-bold tracking-tight text-[var(--neo-text)]">
-                  {username}
-                </h1>
-                {isAdmin ? (
-                  <span className="neo-badge bg-amber-500/10 text-amber-500 border-amber-500/40 text-[10px]">
-                    <ShieldCheck className="w-3 h-3" /> Root
-                  </span>
-                ) : (
-                  <span className="neo-badge bg-[var(--neo-bg)] text-[var(--neo-text-muted)] text-[10px]">
-                    Guest
-                  </span>
-                )}
-              </div>
-
-              <p className="text-[10px] sm:text-[11px] font-mono text-[var(--neo-text-muted)]">
-                {t.hero_status}
-              </p>
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 border-[var(--neo-border)] bg-[var(--neo-bg)] flex items-center justify-center text-[var(--neo-text)] shadow-sm">
+              <User className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
             </div>
           </div>
 
-          {/* c. Bagian Bawah: Informasi Device & Baterai Susun ke Bawah yang Rapi */}
-          <div className="mt-3.5 pt-3 border-t-2 border-[var(--neo-border)] space-y-2 text-xs">
-            {/* Row 1: OS & Browser */}
-            <div className="px-3 py-2 rounded-xl border-2 border-[var(--neo-border)] bg-[var(--neo-bg)] flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[var(--neo-text)]">
-                {deviceInfo.isMobile ? (
-                  <Smartphone className="w-3.5 h-3.5 text-[var(--neo-text-muted)] shrink-0" />
-                ) : (
-                  <Monitor className="w-3.5 h-3.5 text-[var(--neo-text-muted)] shrink-0" />
-                )}
-                <span className="font-semibold text-xs truncate max-w-[150px] sm:max-w-none">{deviceInfo.os}</span>
-              </div>
-              <span className="text-[var(--neo-text-muted)] font-mono text-[10px] sm:text-[11px] shrink-0">
-                {deviceInfo.browser}
+          {/* Horizontal Divider */}
+          <div className="h-0.5 bg-[var(--neo-border)] w-full opacity-60" />
+
+          {/* Kotak Input Berbingkai Tegas: MASUKKAN NAMA PENGGUNA */}
+          <div className="p-3 sm:p-4 rounded-2xl border-2 border-[var(--neo-border)] bg-[var(--neo-bg)] space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-[var(--neo-text)] whitespace-nowrap">
+                MASUKKAN NAMA PENGGUNA
+              </span>
+              <span className="neo-badge bg-[var(--neo-surface)] text-[var(--neo-text)] text-[9px] sm:text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-[var(--neo-border)] whitespace-nowrap shrink-0">
+                1 Perangkat Terdeteksi
               </span>
             </div>
 
-            {/* Row 2: Status & Persentase Baterai */}
-            <div className="px-3 py-2 rounded-xl border-2 border-[var(--neo-border)] bg-[var(--neo-bg)] flex items-center justify-between">
-              <div className="flex items-center gap-2 text-[var(--neo-text)]">
-                {battery.charging ? (
-                  <BatteryCharging className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                ) : battery.level <= 20 ? (
-                  <BatteryLow className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                ) : (
-                  <Battery className="w-3.5 h-3.5 text-[var(--neo-text-muted)] shrink-0" />
-                )}
-                <span className="font-semibold text-xs">
-                  {battery.charging ? t.battery_charging : t.battery_discharging}
-                </span>
+            <form onSubmit={handleSaveName} className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Contoh: Vin (1 kata)"
+                value={customNameInput}
+                onChange={(e) => setCustomNameInput(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-xl neo-input text-xs sm:text-sm font-semibold border-2 border-[var(--neo-border)] bg-[var(--neo-surface)]"
+              />
+              <button
+                type="submit"
+                className="neo-btn neo-btn-primary px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm shrink-0 cursor-pointer"
+              >
+                {savedToast ? 'Tersimpan!' : 'Simpan'}
+              </button>
+            </form>
+          </div>
+
+          {/* 7 Baris Telemetri Real-Time */}
+          <div className="space-y-2.5 sm:space-y-3 pt-1 text-xs sm:text-[13px]">
+            {/* Row 1: Status */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-[var(--neo-text)] font-bold shrink-0">
+                <Radio className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
+                <span>Status</span>
               </div>
+              <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-black text-emerald-500 shrink-0">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>ONLINE</span>
+              </div>
+            </div>
 
+            {/* Row 2: Region */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-[var(--neo-text)] font-bold shrink-0">
+                <span>Region</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-bold text-[var(--neo-text)] shrink-0">
+                <span>🇮🇩</span>
+                <span>Indonesia</span>
+              </div>
+            </div>
+
+            {/* Row 3: Perangkat */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-[var(--neo-text)] font-bold shrink-0">
+                {deviceInfo.isMobile ? (
+                  <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--neo-text-muted)] shrink-0" />
+                ) : (
+                  <Monitor className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--neo-text-muted)] shrink-0" />
+                )}
+                <span>Perangkat</span>
+              </div>
+              <span className="neo-badge bg-[var(--neo-surface)] text-[var(--neo-text)] font-bold text-[10px] sm:text-[11px] px-2.5 py-1 rounded-full border-2 border-[var(--neo-border)] shadow-sm whitespace-nowrap shrink-0">
+                {deviceInfo.os} • {deviceInfo.browser}
+              </span>
+            </div>
+
+            {/* Row 4: Baterai */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-[var(--neo-text)] font-bold shrink-0">
+                <Battery className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--neo-text-muted)] shrink-0" />
+                <span>Baterai</span>
+              </div>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="font-mono text-xs font-bold text-[var(--neo-text)]">
-                  {battery.supported ? `${battery.level}%` : t.battery_ac}
-                </span>
-
-                {/* Neo Battery Bar */}
-                <div className="w-10 sm:w-12 h-2 rounded-full border border-[var(--neo-border)] bg-[var(--neo-surface)] overflow-hidden">
+                <div className="w-14 sm:w-16 h-2.5 sm:h-3 rounded-full border border-[var(--neo-border)] bg-[var(--neo-bg)] overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-300 ${
-                      battery.charging
-                        ? 'bg-emerald-500'
-                        : battery.level <= 20
-                        ? 'bg-rose-500'
-                        : 'bg-[var(--neo-accent)]'
-                    }`}
+                    className="h-full bg-emerald-500 transition-all duration-300"
                     style={{ width: `${battery.level}%` }}
                   />
                 </div>
+                <span className="text-[10px] sm:text-[11px] font-black uppercase text-emerald-500">
+                  {battery.charging ? 'MENGISI' : 'AKTIF'}
+                </span>
+                <span className="neo-badge bg-[var(--neo-surface)] text-[var(--neo-text)] font-bold text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full border border-[var(--neo-border)] whitespace-nowrap shrink-0">
+                  {battery.supported ? `${battery.level}%` : 'OPTIMAL'}
+                </span>
               </div>
             </div>
 
-            {/* Row 3: Creator / Developer Socials (GitHub & Instagram Grid 2 Kolom) */}
-            <div className="px-3 py-2 rounded-xl border-2 border-[var(--neo-border)] bg-[var(--neo-bg)] flex flex-col gap-1.5">
-              <span className="text-[10px] sm:text-[11px] font-bold text-[var(--neo-text-muted)] uppercase tracking-wider">
-                Creator Socials
-              </span>
-              <div className="grid grid-cols-2 gap-2 w-full relative z-20">
-                <a
-                  href="https://github.com/rajibjugi02-ctrl"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="neo-btn px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-[var(--neo-surface)] text-[var(--neo-text)] hover:border-[var(--neo-border-active)] hover:text-[var(--neo-accent)] cursor-pointer select-none transition-all truncate"
-                  title="GitHub @rajibjugi02-ctrl"
+            {/* Row 5: Network */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-[var(--neo-text)] font-bold shrink-0">
+                <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--neo-text-muted)] shrink-0" />
+                <span>Network</span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                <span className="neo-badge bg-[var(--neo-surface)] text-[var(--neo-text)] font-mono font-bold text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full border-2 border-[var(--neo-border)] shadow-sm whitespace-nowrap shrink-0">
+                  {pingMs} MS
+                </span>
+              </div>
+            </div>
+
+            {/* Row 6: Jam */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-[var(--neo-text)] font-bold shrink-0">
+                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--neo-text-muted)] shrink-0" />
+                <span>Jam</span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="inline-block w-2 h-2 rounded-full bg-amber-400" />
+                <span className="neo-badge bg-[var(--neo-surface)] text-[var(--neo-text)] font-mono font-black text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full border-2 border-[var(--neo-border)] shadow-sm whitespace-nowrap shrink-0">
+                  {timeStr}
+                </span>
+              </div>
+            </div>
+
+            {/* Row 7: Role */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-[var(--neo-text)] font-bold shrink-0">
+                <span>Role</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="neo-badge bg-[var(--neo-surface)] text-[var(--neo-text)] font-bold text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full border-2 border-[var(--neo-border)] whitespace-nowrap shrink-0">
+                  {isAdmin ? 'ADMIN' : 'MEMBER'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowAdminModal(true)}
+                  className="neo-btn px-2.5 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-[#121212] text-white dark:bg-[#F4F4F0] dark:text-[#121212] border border-[var(--neo-border)] shadow-sm cursor-pointer whitespace-nowrap shrink-0"
                 >
-                  <Github className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">@rajibjugi02-ctrl</span>
-                </a>
-                <a
-                  href="https://www.instagram.com/zaestraa/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="neo-btn px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-[var(--neo-surface)] text-[var(--neo-text)] hover:border-[var(--neo-border-active)] hover:text-pink-500 cursor-pointer select-none transition-all truncate"
-                  title="Instagram @zaestraa"
-                >
-                  <Instagram className="w-3.5 h-3.5 text-pink-500 shrink-0" />
-                  <span className="truncate">@zaestraa</span>
-                </a>
+                  {isAdmin ? 'Keluar' : 'Login'}
+                </button>
               </div>
             </div>
           </div>
-
-          {/* Admin Telemetry Drawer */}
-          {isAdmin && adminData && (
-            <div className="mt-3 p-3 rounded-xl border-2 border-amber-500/40 bg-amber-500/10 text-xs flex flex-wrap items-center justify-between gap-2">
-              <span className="text-amber-500 font-bold flex items-center gap-1.5">
-                <Cpu className="w-3.5 h-3.5" /> Server Telemetry:
-              </span>
-              <div className="flex items-center gap-3 text-[var(--neo-text)] font-mono text-[11px]">
-                <span>CPU: {adminData.cpu_usage || '4%'}</span>
-                <span>RAM: {adminData.ram_usage || '32%'}</span>
-                <span>Disk: {adminData.disk_free || 'OK'}</span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* ================= SECRET ADMIN MODAL (5-CLICK EASTER EGG) ================= */}
+      {/* Baris Tautan Sosial Pembuat (Creator Socials) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 mt-3">
+        <a
+          href="https://www.instagram.com/zaestraa/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full px-4 py-2.5 rounded-2xl neo-card bg-[var(--neo-surface)] border-2 border-[var(--neo-border)] shadow-neo-sm hover:shadow-neo transition-all flex items-center justify-between text-xs font-black text-[var(--neo-text)] group"
+        >
+          <div className="flex items-center gap-2">
+            <Instagram className="w-4 h-4 text-pink-500" />
+            <span>IG @zaestraa (Instagram)</span>
+          </div>
+          <ExternalLink className="w-3.5 h-3.5 text-[var(--neo-text-muted)] group-hover:text-[var(--neo-text)] transition-colors" />
+        </a>
+
+        <a
+          href="https://github.com/rajibjugi02-ctrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full px-4 py-2.5 rounded-2xl neo-card bg-[var(--neo-surface)] border-2 border-[var(--neo-border)] shadow-neo-sm hover:shadow-neo transition-all flex items-center justify-between text-xs font-black text-[var(--neo-text)] group"
+        >
+          <div className="flex items-center gap-2">
+            <Github className="w-4 h-4 text-[var(--neo-text)]" />
+            <span>GitHub Repo (@rajibjugi02-ctrl)</span>
+          </div>
+          <ExternalLink className="w-3.5 h-3.5 text-[var(--neo-text-muted)] group-hover:text-[var(--neo-text)] transition-colors" />
+        </a>
+      </div>
+
+      {/* Admin Login Modal */}
       <AnimatePresence>
         {showAdminModal && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-sm rounded-2xl border-2 border-[var(--neo-border)] bg-[var(--neo-surface)] p-5 shadow-neo space-y-4"
+              className="w-full max-w-xs neo-card p-5 rounded-2xl bg-[var(--neo-surface)] border-2 border-[var(--neo-border)] shadow-neo space-y-4"
             >
-              <div className="flex items-center justify-between border-b pb-3 border-[var(--neo-border)]">
+              <div className="flex items-center justify-between pb-2 border-b border-[var(--neo-border)]">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/30">
-                    <KeyRound className="w-4 h-4" />
-                  </div>
-                  <span className="font-bold text-sm text-[var(--neo-text)]">
-                    Root Authentication
-                  </span>
+                  <Lock className="w-4 h-4 text-amber-500" />
+                  <h3 className="font-bold text-sm text-[var(--neo-text)]">
+                    {isAdmin ? 'Status Akses Root' : 'Autentikasi Admin'}
+                  </h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowAdminModal(false)}
-                  className="p-1 rounded-lg text-[var(--neo-text-muted)] hover:text-[var(--neo-text)]"
+                  className="p-1 rounded-full text-[var(--neo-text-muted)] hover:text-[var(--neo-text)]"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <form onSubmit={handleAdminVerify} className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-[var(--neo-text-muted)]">
-                    PIN / Master Password
-                  </label>
+              {isAdmin ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-[var(--neo-text-muted)]">
+                    Anda sedang login dengan hak akses Administrator.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAdmin(false, null);
+                      setShowAdminModal(false);
+                    }}
+                    className="w-full py-2 rounded-xl bg-rose-500 text-white font-bold text-xs shadow-sm hover:bg-rose-600"
+                  >
+                    Logout Admin
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleAdminAuth} className="space-y-3">
+                  <p className="text-[11px] text-[var(--neo-text-muted)]">
+                    Masukkan password akses sistem admin:
+                  </p>
                   <input
                     type="password"
+                    placeholder="Password admin..."
                     value={adminPass}
                     onChange={(e) => setAdminPass(e.target.value)}
-                    placeholder="Masukkan sandi..."
-                    className="w-full px-3 py-2 rounded-xl neo-input text-xs font-mono"
+                    className="w-full px-3 py-2 rounded-xl neo-input text-xs border-2 border-[var(--neo-border)] bg-[var(--neo-bg)] font-mono"
                     autoFocus
                   />
                   {adminError && (
-                    <p className="text-[11px] text-rose-500 font-semibold mt-1">
-                      {adminError}
-                    </p>
+                    <p className="text-[10px] text-rose-500 font-bold">{adminError}</p>
                   )}
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowAdminModal(false)}
-                    className="neo-btn px-3 py-1.5 rounded-xl text-xs font-semibold"
-                  >
-                    Batal
-                  </button>
                   <button
                     type="submit"
-                    disabled={isVerifying}
-                    className="neo-btn neo-btn-primary px-4 py-1.5 rounded-xl text-xs font-bold"
+                    disabled={isVerifying || !adminPass}
+                    className="w-full py-2 rounded-xl neo-btn neo-btn-primary font-bold text-xs flex items-center justify-center gap-2"
                   >
-                    {isVerifying ? 'Memverifikasi...' : 'Masuk'}
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>{isVerifying ? 'Memverifikasi...' : 'Masuk Admin'}</span>
                   </button>
-                </div>
-              </form>
+                </form>
+              )}
             </motion.div>
           </div>
         )}

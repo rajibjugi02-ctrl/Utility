@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Compass, History, Settings, Sun, Moon } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { i18n } from '@/utils/i18n';
 
 export const MobileBottomBar: React.FC = () => {
-  const router = useRouter();
   const pathname = usePathname();
 
   const {
@@ -29,34 +29,26 @@ export const MobileBottomBar: React.FC = () => {
   const t = i18n[language] || i18n['id'];
 
   const navItems = [
-    { id: 'beranda', label: t.nav_home, icon: Compass },
-    { id: 'riwayat', label: t.nav_history, icon: History },
-    { id: 'pengaturan', label: t.nav_settings, icon: Settings },
+    { id: 'beranda', href: '/', label: t.nav_home, icon: Compass },
+    { id: 'riwayat', href: '/history', label: t.nav_history, icon: History },
+    { id: 'pengaturan', href: '/settings', label: t.nav_settings, icon: Settings },
   ] as const;
 
-  // Determine active tab reliably from URL pathname
-  let currentActiveTab: 'beranda' | 'riwayat' | 'pengaturan' = activeTab;
+  let currentActiveTab: 'beranda' | 'riwayat' | 'pengaturan' = 'beranda';
   if (pathname === '/history') {
     currentActiveTab = 'riwayat';
   } else if (pathname === '/settings') {
     currentActiveTab = 'pengaturan';
-  } else if (pathname === '/') {
-    currentActiveTab = activeTab || 'beranda';
-  } else if (pathname?.startsWith('/tools')) {
+  } else {
     currentActiveTab = 'beranda';
   }
 
-  const handleTabClick = (id: 'beranda' | 'riwayat' | 'pengaturan') => {
+  const handleNavClick = (id: 'beranda' | 'riwayat' | 'pengaturan') => {
     setActiveTab(id);
     setActiveToolSlug(null);
     setSettingsSubPage(null);
-
-    if (id === 'beranda') {
-      router.push('/');
-    } else if (id === 'riwayat') {
-      router.push('/history');
-    } else if (id === 'pengaturan') {
-      router.push('/settings');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   };
 
@@ -68,14 +60,15 @@ export const MobileBottomBar: React.FC = () => {
             const Icon = item.icon;
             const isActive = currentActiveTab === item.id;
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
-                onClick={() => handleTabClick(item.id)}
-                className={`relative flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer select-none ${isActive
+                href={item.href}
+                onClick={() => handleNavClick(item.id)}
+                className={`relative flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer select-none ${
+                  isActive
                     ? 'text-[var(--neo-accent-text)]'
                     : 'text-[var(--neo-text-muted)] hover:text-[var(--neo-text)]'
-                  }`}
+                }`}
               >
                 <Icon className="w-4 h-4 relative z-10" />
                 <span className="text-[10px] mt-0.5 font-bold tracking-tight relative z-10">
@@ -89,7 +82,7 @@ export const MobileBottomBar: React.FC = () => {
                     transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                   />
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -100,13 +93,13 @@ export const MobileBottomBar: React.FC = () => {
         <button
           type="button"
           onClick={toggleThemeMode}
-          className="neo-btn p-2 rounded-xl bg-[var(--neo-surface)] text-[var(--neo-text)]"
-          title="Toggle Tema"
+          className="neo-btn p-2 rounded-xl bg-[var(--neo-surface)] text-[var(--neo-text)] cursor-pointer"
+          title="Toggle Theme"
         >
           {mounted && themeMode === 'light' ? (
-            <Moon className="w-4 h-4 text-neutral-800" />
+            <Moon className="w-3.5 h-3.5 text-neutral-800" />
           ) : (
-            <Sun className="w-4 h-4 text-amber-400" />
+            <Sun className="w-3.5 h-3.5 text-amber-400" />
           )}
         </button>
       </div>

@@ -108,7 +108,7 @@ export const SmartClipboardBar: React.FC = () => {
   };
 
   return (
-    <section className="w-full max-w-xl mx-auto px-3 sm:px-4 pb-3 relative z-10">
+    <section className="w-full max-w-5xl mx-auto px-3 sm:px-4 pb-3 relative z-10">
       <div className="neo-card p-3.5 sm:p-4 rounded-2xl bg-[var(--neo-surface)] space-y-2.5 shadow-[3px_3px_0px_#121212] md:shadow-[4px_4px_0px_#121212]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">

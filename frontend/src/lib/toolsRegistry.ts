@@ -8,32 +8,21 @@ import {
   Layers,
   Globe,
   Image as ImageIcon,
-  Sparkles,
   Sliders,
   ScanText,
-  ShieldAlert,
-  Activity,
   Eye,
   Scissors,
-  PenTool,
-  User,
   LayoutGrid,
   QrCode,
   FileCode,
   Palette,
-  FileArchive,
-  Subtitles,
-  Headphones,
   Camera,
   Mic,
-  Smartphone,
-  ShieldCheck,
   FileCheck2,
   VolumeX,
-  Receipt,
-  FilePlus2,
-  Stamp,
   UserCheck,
+  Film,
+  Download,
 } from 'lucide-react';
 import { ToolCategory } from '@/store/useAppStore';
 
@@ -51,6 +40,7 @@ export interface ToolItem {
 
 export const CATEGORY_FILTERS: Array<{ id: ToolCategory; label: string }> = [
   { id: 'all', label: 'Semua Alat' },
+  { id: 'downloader', label: 'Downloader' },
   { id: 'creator', label: 'Kreator & Video' },
   { id: 'audio', label: 'Audio & Musik' },
   { id: 'docs', label: 'Dokumen & PDF' },
@@ -59,16 +49,30 @@ export const CATEGORY_FILTERS: Array<{ id: ToolCategory; label: string }> = [
 ];
 
 export const toolsCatalog: ToolItem[] = [
-  // --- KREATOR & VIDEO ---
+  // --- DOWNLOADER UTAMA ---
   {
-    id: 'tiktok-downloader',
-    title: 'TikTok Downloader',
-    desc: 'Unduh video MP4 HD tanpa watermark dan audio MP3 resmi.',
-    category: 'creator',
-    badge: 'MP4 / MP3',
-    icon: Video,
+    id: 'media-downloader',
+    title: 'Media Downloader',
+    desc: 'Unduh video MP4 HD, foto slide/carousel, dan audio tanpa watermark dari 6 platform utama.',
+    category: 'downloader',
+    badge: '6 PLATFORM UTAMA',
+    icon: Download,
     iconColor: 'text-rose-500',
     iconBg: 'bg-rose-500/10',
+    isNew: true,
+  },
+
+  // --- KREATOR & VIDEO ---
+  {
+    id: 'movie-finder',
+    title: 'Pencari Rekomendasi Film',
+    desc: 'Temukan film bioskop, box office, & series terbaik dengan rating tinggi, poster jernih, dan sinopsis seru.',
+    category: 'creator',
+    badge: 'FILM & SERIES',
+    icon: Film,
+    iconColor: 'text-purple-500',
+    iconBg: 'bg-purple-500/10',
+    isNew: true,
   },
   {
     id: 'tiktok-stalker',
@@ -123,39 +127,8 @@ export const toolsCatalog: ToolItem[] = [
     iconBg: 'bg-rose-500/10',
     isNew: true,
   },
-  {
-    id: 'instagram-downloader',
-    title: 'Instagram Downloader',
-    desc: 'Unduh Reels, Video Post, Carousel, dan Story kualitas jernih.',
-    category: 'creator',
-    badge: 'Reels & Post',
-    icon: Instagram,
-    iconColor: 'text-pink-500',
-    iconBg: 'bg-pink-500/10',
-  },
-  {
-    id: 'youtube-downloader',
-    title: 'YouTube Video & Audio',
-    desc: 'Unduh video resolusi tinggi (1080p/4K) atau ekstrak track audio MP3.',
-    category: 'creator',
-    badge: 'Video & Audio',
-    icon: Youtube,
-    iconColor: 'text-red-500',
-    iconBg: 'bg-red-500/10',
-  },
 
   // --- AUDIO & MUSIK ---
-  {
-    id: 'audio-8d-bpm-detector',
-    title: '8D Spatial Audio & BPM Detector',
-    desc: 'Hitung tempo BPM & nada dasar, ubah audio berputar 8D mengelilingi telinga.',
-    category: 'audio',
-    badge: '8D Spatial & BPM',
-    icon: Headphones,
-    iconColor: 'text-indigo-500',
-    iconBg: 'bg-indigo-500/10',
-    isNew: true,
-  },
   {
     id: 'voice-changer-studio',
     title: 'Voice Changer & Audio Anonymizer',
@@ -166,16 +139,6 @@ export const toolsCatalog: ToolItem[] = [
     iconColor: 'text-purple-500',
     iconBg: 'bg-purple-500/10',
     isNew: true,
-  },
-  {
-    id: 'beat-marker-am-xml',
-    title: 'Auto Beat-Marker & Alight Motion XML',
-    desc: 'Deteksi ketukan kick/bass otomatis & ekspor bookmark XML Alight Motion.',
-    category: 'audio',
-    badge: 'XML AM & Beat',
-    icon: Activity,
-    iconColor: 'text-rose-500',
-    iconBg: 'bg-rose-500/10',
   },
   {
     id: 'audio-slowed-reverb',
@@ -197,16 +160,6 @@ export const toolsCatalog: ToolItem[] = [
     iconColor: 'text-emerald-500',
     iconBg: 'bg-emerald-500/10',
   },
-  {
-    id: 'subtitle-lrc-studio',
-    title: 'Subtitle (.SRT) & Lyric (.LRC) Studio',
-    desc: 'Buat timestamp lirik sinkron (.lrc) atau subtitle video (.srt) interaktif.',
-    category: 'audio',
-    badge: 'SRT & LRC',
-    icon: Subtitles,
-    iconColor: 'text-teal-500',
-    iconBg: 'bg-teal-500/10',
-  },
 
   // --- DOKUMEN & PDF ---
   {
@@ -216,38 +169,6 @@ export const toolsCatalog: ToolItem[] = [
     category: 'docs',
     badge: 'Kanvas Bersih',
     icon: FileText,
-    iconColor: 'text-indigo-500',
-    iconBg: 'bg-indigo-500/10',
-  },
-  {
-    id: 'digital-invoice-generator',
-    title: 'Invoice, Kwitansi & Nota Generator',
-    desc: 'Buat invoice freelance, nota olshop, & kwitansi dengan tanda tangan digital.',
-    category: 'docs',
-    badge: 'Invoice PDF',
-    icon: Receipt,
-    iconColor: 'text-emerald-500',
-    iconBg: 'bg-emerald-500/10',
-    isNew: true,
-  },
-  {
-    id: 'pdf-page-number-protector',
-    title: 'PDF Number Stamper & Header/Footer',
-    desc: 'Bubuhi nomor halaman otomatis (Halaman X dari Y) & stempel header/footer.',
-    category: 'docs',
-    badge: 'PDF Stamper',
-    icon: Stamp,
-    iconColor: 'text-sky-500',
-    iconBg: 'bg-sky-500/10',
-    isNew: true,
-  },
-  {
-    id: 'pdf-merge-split-sign',
-    title: 'PDF Merge, Split & Signature Studio',
-    desc: 'Gabung banyak PDF, ekstrak halaman, & bubuhkan tanda tangan digital.',
-    category: 'docs',
-    badge: 'Merge & Sign',
-    icon: PenTool,
     iconColor: 'text-indigo-500',
     iconBg: 'bg-indigo-500/10',
   },
@@ -271,16 +192,6 @@ export const toolsCatalog: ToolItem[] = [
     iconColor: 'text-teal-500',
     iconBg: 'bg-teal-500/10',
   },
-  {
-    id: 'batch-renamer-zip',
-    title: 'Batch File Renamer & ZIP Bundler',
-    desc: 'Ubah nama banyak file sekaligus dengan aturan otomatis dan kemas ke file .ZIP.',
-    category: 'docs',
-    badge: 'Batch & ZIP',
-    icon: FileArchive,
-    iconColor: 'text-purple-500',
-    iconBg: 'bg-purple-500/10',
-  },
 
   // --- GAMBAR & DESAIN ---
   {
@@ -295,28 +206,6 @@ export const toolsCatalog: ToolItem[] = [
     isNew: true,
   },
   {
-    id: 'device-mockup-studio',
-    title: 'Device Mockup Frame Studio',
-    desc: 'Bungkus screenshot ke frame iPhone 16 Pro, MacBook, atau Browser Window.',
-    category: 'images',
-    badge: '3D Mockup',
-    icon: Smartphone,
-    iconColor: 'text-blue-500',
-    iconBg: 'bg-blue-500/10',
-    isNew: true,
-  },
-  {
-    id: 'ktp-watermark-protector',
-    title: 'KTP Watermark Protector (Anti-Pinjol)',
-    desc: 'Bubuhi watermark teks menyilang berulang untuk cegah penyalahgunaan data.',
-    category: 'images',
-    badge: 'Anti-Pinjol',
-    icon: ShieldCheck,
-    iconColor: 'text-emerald-500',
-    iconBg: 'bg-emerald-500/10',
-    isNew: true,
-  },
-  {
     id: 'camscanner-enhancer',
     title: 'CamScanner Document Enhancer',
     desc: 'Bersihkan bayangan foto catatan/struk jadi putih bersih layaknya mesin scan.',
@@ -326,16 +215,6 @@ export const toolsCatalog: ToolItem[] = [
     iconColor: 'text-teal-500',
     iconBg: 'bg-teal-500/10',
     isNew: true,
-  },
-  {
-    id: 'pas-foto-maker',
-    title: 'Pas Foto Maker (2x3, 3x4, 4x6)',
-    desc: 'Ganti latar Merah/Biru resmi, panduan paspor, & buat lembar cetak 4R.',
-    category: 'images',
-    badge: 'Pas Foto Resmi',
-    icon: User,
-    iconColor: 'text-red-500',
-    iconBg: 'bg-red-500/10',
   },
   {
     id: 'target-size-compressor',
@@ -377,16 +256,6 @@ export const toolsCatalog: ToolItem[] = [
     iconColor: 'text-amber-500',
     iconBg: 'bg-amber-500/10',
   },
-  {
-    id: 'exif-remover',
-    title: 'EXIF Viewer & Privacy Remover',
-    desc: 'Tampilkan dan bersihkan metadata tersembunyi (GPS, kamera, waktu).',
-    category: 'images',
-    badge: 'Privasi Foto',
-    icon: ShieldAlert,
-    iconColor: 'text-orange-500',
-    iconBg: 'bg-orange-500/10',
-  },
 
   // --- DEVELOPER & QR ---
   {
@@ -410,3 +279,105 @@ export const toolsCatalog: ToolItem[] = [
     iconBg: 'bg-teal-500/10',
   },
 ];
+
+/**
+ * Dictionary of slug aliases to prevent 404 / 'Alat tidak ditemukan'
+ */
+export const SLUG_ALIASES: Record<string, string> = {
+  // Downloader Aliases -> media-downloader
+  'tiktok-downloader': 'media-downloader',
+  'tiktok': 'media-downloader',
+  'ig-downloader': 'media-downloader',
+  'instagram-downloader': 'media-downloader',
+  'instagram': 'media-downloader',
+  'youtube-downloader': 'media-downloader',
+  'youtube': 'media-downloader',
+  'x-downloader': 'media-downloader',
+  'twitter-downloader': 'media-downloader',
+  'twitter': 'media-downloader',
+  'facebook-downloader': 'media-downloader',
+  'fb-downloader': 'media-downloader',
+  'facebook': 'media-downloader',
+  'pinterest-downloader': 'media-downloader',
+  'pinterest': 'media-downloader',
+  'downloader': 'media-downloader',
+  'multi-downloader': 'media-downloader',
+  'media': 'media-downloader',
+
+  // Movie Finder Aliases -> movie-finder
+  'rekomendasi-film': 'movie-finder',
+  'film-finder': 'movie-finder',
+  'pencari-film': 'movie-finder',
+  'film': 'movie-finder',
+  'movie': 'movie-finder',
+  'movies': 'movie-finder',
+  'bioskop': 'movie-finder',
+
+  // TikTok Stalker Aliases -> tiktok-stalker
+  'tiktok-stalk': 'tiktok-stalker',
+  'stalk-tiktok': 'tiktok-stalker',
+  'stalker': 'tiktok-stalker',
+
+  // Alight Motion Aliases -> alight-preset-finder
+  'alight-motion': 'alight-preset-finder',
+  'alight-preset': 'alight-preset-finder',
+  'preset-am': 'alight-preset-finder',
+  'cari-link-jj': 'alight-preset-finder',
+  'link-jj': 'alight-preset-finder',
+
+  // PDF & Docs Aliases -> pdf-studio / web-to-pdf
+  'text-to-pdf': 'pdf-studio',
+  'pdf': 'pdf-studio',
+  'link-to-pdf': 'web-to-pdf',
+  'html-to-pdf': 'web-to-pdf',
+  'web-pdf': 'web-to-pdf',
+  'ocr': 'ocr-image-to-text',
+  'scanner': 'camscanner-enhancer',
+  'camscanner': 'camscanner-enhancer',
+
+  // Images Aliases
+  'photobooth': 'korean-photobooth-strip',
+  'life4cuts': 'korean-photobooth-strip',
+  'compressor': 'target-size-compressor',
+  'palette': 'image-palette-extractor',
+  'grid-splitter': 'ig-grid-splitter',
+  'converter': 'image-converter',
+
+  // Audio Aliases
+  'slowed-reverb': 'audio-slowed-reverb',
+  'voice-changer': 'voice-changer-studio',
+  'audio-cutter': 'audio-cutter-splitter',
+  'vocal-remover': 'audio-cutter-splitter',
+
+  // Video & Creator Aliases
+  'video-to-gif': 'video-gif-sticker-maker',
+  'gif-maker': 'video-gif-sticker-maker',
+  'sticker-maker': 'video-gif-sticker-maker',
+  'mute-video': 'video-mute-audio-replacer',
+  'safe-zone': 'safe-zone-previewer',
+
+  // Dev Aliases
+  'qr-code': 'qr-code-studio',
+  'qr-studio': 'qr-code-studio',
+  'qr': 'qr-code-studio',
+  'design-prompt': 'web-to-design-prompt-md',
+};
+
+/**
+ * Safe, single-source-of-truth tool resolver with alias normalization
+ */
+export const resolveToolBySlug = (rawSlug: string): ToolItem | undefined => {
+  if (!rawSlug) return undefined;
+  try {
+    const normalized = decodeURIComponent(rawSlug).toLowerCase().trim();
+    // 1. Direct match
+    const directMatch = toolsCatalog.find((t) => t.id === normalized);
+    if (directMatch) return directMatch;
+    // 2. Alias match
+    const aliasId = SLUG_ALIASES[normalized];
+    if (aliasId) {
+      return toolsCatalog.find((t) => t.id === aliasId);
+    }
+  } catch {}
+  return undefined;
+};

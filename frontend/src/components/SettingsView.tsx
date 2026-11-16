@@ -16,6 +16,14 @@ import {
   Moon,
   Check,
   LayoutGrid,
+  Type,
+  Info,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp,
+  Github,
+  Instagram,
+  Sparkles,
 } from 'lucide-react';
 import {
   useAppStore,
@@ -23,12 +31,8 @@ import {
   TextSize,
   BgStyle,
   ThemeMode,
+  FontFamily,
 } from '@/store/useAppStore';
-import {
-  saveBannerMedia,
-  loadBannerMedia,
-  removeBannerMedia,
-} from '@/lib/indexedDbBanner';
 import { i18n, AppLang } from '@/utils/i18n';
 
 export const SettingsView: React.FC = () => {
@@ -46,6 +50,8 @@ export const SettingsView: React.FC = () => {
     setTextSize,
     bgStyle,
     setBgStyle,
+    fontFamily,
+    setFontFamily,
     language,
     setLanguage,
     clearHistory,
@@ -55,50 +61,18 @@ export const SettingsView: React.FC = () => {
 
   // Local state for profile sub-page
   const [tempUsername, setTempUsername] = useState(username);
-  const [bannerPreview, setBannerPreview] = useState<{ url: string; isVideo: boolean } | null>(null);
-  const [bannerSuccess, setBannerSuccess] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    loadBannerMedia().then((media) => {
-      if (media) setBannerPreview(media);
-    });
-  }, []);
-
-  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setIsSaving(true);
-      try {
-        const saved = await saveBannerMedia(file);
-        setBannerPreview(saved);
-        incrementBannerVersion();
-        setBannerSuccess(true);
-        setTimeout(() => setBannerSuccess(false), 3000);
-      } catch (err) {
-        console.error('Failed to save banner to IndexedDB:', err);
-      } finally {
-        setIsSaving(false);
-      }
-    }
-  };
-
-  const handleResetBanner = async () => {
-    await removeBannerMedia();
-    setBannerPreview(null);
-    incrementBannerVersion();
-  };
+  const [nameSuccess, setNameSuccess] = useState(false);
 
   const handleSaveUsername = (e: React.FormEvent) => {
     e.preventDefault();
     if (tempUsername.trim()) {
       setUsername(tempUsername.trim());
+      setNameSuccess(true);
+      setTimeout(() => setNameSuccess(false), 2500);
     }
   };
 
-  // ================= 1. SUB-PAGE: UBAH VIDEO BANNER & PROFIL =================
+  // ================= 1. SUB-PAGE: PROFIL & STATUS BANNER =================
   if (settingsSubPage === 'profile') {
     return (
       <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pt-4 md:pt-24 pb-28 md:pb-16 space-y-3.5 relative z-10">
@@ -114,82 +88,38 @@ export const SettingsView: React.FC = () => {
         <div className="neo-card p-5 sm:p-6 rounded-2xl bg-[var(--neo-surface)] space-y-5">
           <div>
             <h1 className="text-base sm:text-lg font-bold text-[var(--neo-text)] tracking-tight">
-              Profil & Video Banner Lokal
+              Profil & Video Banner Hero
             </h1>
             <p className="text-xs text-[var(--neo-text-muted)] mt-0.5">
-              File video banner disimpan di IndexedDB lokal browser Anda (hanya berubah pada device ini).
+              Video banner Hero Card berstatus permanen dan aktif secara serentak di semua perangkat.
             </p>
           </div>
 
-          {/* Video Banner Uploader */}
+          {/* Video Banner Status (Locked Permanent) */}
           <div className="space-y-3 pt-1">
-            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--neo-text)]">
-              Hero Video Banner (Upload Langsung)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--neo-text)]">
+                Video Banner Utama (Permanen)
+              </label>
+              <span className="neo-badge bg-[var(--neo-accent)] text-[var(--neo-accent-text)] text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-black shadow-sm">
+                Terkunci & Statis
+              </span>
+            </div>
 
             {/* Banner Preview */}
-            <div className="relative w-full h-36 rounded-xl overflow-hidden bg-neutral-900 border-2 border-[var(--neo-border)]">
-              {bannerPreview ? (
-                bannerPreview.isVideo ? (
-                  <video
-                    src={bannerPreview.url}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={bannerPreview.url}
-                    alt="Banner Preview"
-                    className="w-full h-full object-cover"
-                  />
-                )
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-neutral-400 text-xs font-mono">
-                  Video Aesthetic Default Aktif
-                </div>
-              )}
-            </div>
-
-            {/* Upload Buttons */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleBannerUpload}
-                accept="video/*,image/*"
-                className="hidden"
+            <div className="relative w-full h-44 rounded-xl overflow-hidden bg-black border-2 border-[var(--neo-border)] shadow-sm">
+              <video
+                src="/banner-permanent.mp4"
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover pointer-events-none select-none"
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isSaving}
-                className="neo-btn neo-btn-primary px-4 py-2 rounded-xl text-xs font-bold"
-              >
-                <UploadCloud className="w-4 h-4" />
-                <span>{isSaving ? 'Menyimpan ke IndexedDB...' : 'Upload Video/Foto Banner Baru'}</span>
-              </button>
-
-              {bannerPreview && (
-                <button
-                  type="button"
-                  onClick={handleResetBanner}
-                  className="neo-btn px-4 py-2 rounded-xl text-xs font-bold text-rose-500 bg-[var(--neo-surface)] hover:bg-rose-500/10"
-                >
-                  Reset Default
-                </button>
-              )}
             </div>
-
-            {bannerSuccess && (
-              <p className="text-xs text-emerald-500 font-bold flex items-center gap-1 pt-0.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Video banner berhasil disimpan di IndexedDB lokal perangkat Anda!</span>
-              </p>
-            )}
+            <p className="text-[11px] text-[var(--neo-text-muted)]">
+              File video: <code className="font-mono bg-[var(--neo-bg)] px-1.5 py-0.5 rounded border border-[var(--neo-border)]">/banner-permanent.mp4</code>. Video ini aktif permanen untuk seluruh pengguna.
+            </p>
           </div>
 
           <div className="h-0.5 bg-[var(--neo-border)] my-3" />
@@ -205,7 +135,7 @@ export const SettingsView: React.FC = () => {
                 value={tempUsername}
                 onChange={(e) => setTempUsername(e.target.value)}
                 placeholder="Masukkan nama pengguna..."
-                className="flex-1 px-4 py-2 rounded-xl neo-input text-xs font-bold"
+                className="flex-1 px-4 py-2 rounded-xl neo-input text-xs font-bold border-2 border-[var(--neo-border)]"
                 required
               />
               <button
@@ -215,6 +145,12 @@ export const SettingsView: React.FC = () => {
                 Simpan
               </button>
             </div>
+            {nameSuccess && (
+              <p className="text-xs text-emerald-500 font-bold flex items-center gap-1 pt-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Nama pengguna berhasil diperbarui!</span>
+              </p>
+            )}
           </form>
 
           {/* Anime Avatar Picker */}
@@ -484,11 +420,31 @@ export const SettingsView: React.FC = () => {
     // ================= 3. SUB-PAGE: BACKGROUND WEBSITE =================
     if (settingsSubPage === 'background') {
       const bgOptions: Array<{ id: BgStyle; label: string; desc: string }> = [
-        { id: 'dots', label: 'Interactive Dot Matrix', desc: 'Titik-titik mikro minimalis 24px' },
-        { id: 'grid', label: 'Moving Blueprint Grid', desc: 'Animasi grid bergerak teknikal 32px' },
-        { id: 'shapes', label: 'Floating Brutalist Shapes', desc: 'Bentuk geometris melayang dinamis' },
-        { id: 'isometric', label: 'Isometric Plus Pattern', desc: 'Pola isometrik modern kontras' },
-        { id: 'solid', label: 'Clean Solid Paper', desc: 'Latar polos bersih tanpa pola' },
+        {
+          id: 'red-sakura',
+          label: '🍁 Red Sakura / Daun Merah (Default)',
+          desc: 'Kelopak merah gugur 60FPS selaras dengan video mata anime',
+        },
+        {
+          id: 'pink-sakura',
+          label: '🌸 Pink Sakura Blossom',
+          desc: 'Kelopak sakura merah muda lembut melayang di layar',
+        },
+        {
+          id: 'grid',
+          label: '📐 Moving Blueprint Grid',
+          desc: 'Animasi grid bergerak teknikal 32px minimalis',
+        },
+        {
+          id: 'dots',
+          label: '⠿ Interactive Dot Matrix',
+          desc: 'Titik-titik mikro minimalis 28px',
+        },
+        {
+          id: 'solid',
+          label: '📄 Clean Solid Paper (Tanpa Animasi)',
+          desc: 'Latar polos bersih tanpa animasi partikel',
+        },
       ];
 
       const handleBgChange = (bg: BgStyle) => {
@@ -642,65 +598,333 @@ export const SettingsView: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="h-0.5 bg-[var(--neo-border)]" />
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-[var(--neo-text)] block">Cache Video Banner (IndexedDB)</span>
-                    <span className="text-[11px] text-[var(--neo-text-muted)]">Kembalikan video banner ke default aesthetic.</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleResetBanner}
-                    className="neo-btn neo-btn-secondary px-3 py-1.5 rounded-xl text-xs font-bold"
-                  >
-                    Reset Banner
-                  </button>
-                </div>
               </div>
             </div>
           </div>
           );
   }
 
-          // ================= MAIN SETTINGS MENU =================
-          const menuItems = [
-          {
-            id: 'profile' as SettingsSubPage,
-          title: t.menu_profile,
-          desc: t.menu_profile_desc,
-          icon: Film,
-          badge: 'IndexedDB',
+  // ================= 6. SUB-PAGE: GAYA FONT WEBSITE =================
+  if (settingsSubPage === 'font') {
+    const fonts: Array<{ id: FontFamily; name: string; desc: string; sample: string }> = [
+      {
+        id: 'plus-jakarta',
+        name: 'Plus Jakarta Sans',
+        desc: 'Default Modern Clean, geometris dan tajam untuk tampilan profesional',
+        sample: 'UtilityHub · 1234567890 · The quick brown fox jumps',
+      },
+      {
+        id: 'space-grotesk',
+        name: 'Space Grotesk',
+        desc: 'Neo-Brutalist Tech aesthetic khas brutalism yang tegas dan modern',
+        sample: 'UtilityHub · 1234567890 · The quick brown fox jumps',
+      },
+      {
+        id: 'outfit',
+        name: 'Outfit',
+        desc: 'Modern Geometric Rounded yang lembut dan ramah di mata',
+        sample: 'UtilityHub · 1234567890 · The quick brown fox jumps',
+      },
+      {
+        id: 'jetbrains-mono',
+        name: 'JetBrains Mono',
+        desc: 'Developer Monospace presisi tinggi untuk pembaca kode dan teknikal',
+        sample: 'UtilityHub · 1234567890 · The quick brown fox jumps',
+      },
+      {
+        id: 'inter',
+        name: 'Inter',
+        desc: 'Standar UI minimalis Silicon Valley dengan keterbacaan sempurna',
+        sample: 'UtilityHub · 1234567890 · The quick brown fox jumps',
+      },
+      {
+        id: 'playfair',
+        name: 'Playfair Display',
+        desc: 'Editorial Classic Serif elegan bernuansa majalah dan seni sastra',
+        sample: 'UtilityHub · 1234567890 · The quick brown fox jumps',
+      },
+    ];
+
+    const handleFontChange = (f: FontFamily) => {
+      setFontFamily(f);
+      document.body.setAttribute('data-font', f);
+    };
+
+    return (
+      <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pt-4 md:pt-24 pb-28 md:pb-16 space-y-3.5 relative z-10">
+        <button
+          type="button"
+          onClick={() => setSettingsSubPage(null)}
+          className="neo-btn neo-btn-secondary px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>{t.back_to_settings}</span>
+        </button>
+
+        <div className="neo-card p-5 sm:p-6 rounded-2xl bg-[var(--neo-surface)] space-y-5 border-2 border-[var(--neo-border)] shadow-neo">
+          <div>
+            <h1 className="text-base sm:text-lg font-black text-[var(--neo-text)] tracking-tight">
+              Kustomisasi Gaya Font Website
+            </h1>
+            <p className="text-xs text-[var(--neo-text-muted)] mt-0.5">
+              Pilih jenis font teks utama website. Perubahan font diterapkan langsung di seluruh halaman.
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            {fonts.map((f) => {
+              const isActive = (fontFamily || 'plus-jakarta') === f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => handleFontChange(f.id)}
+                  className={`w-full p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    isActive
+                      ? 'border-[#121212] bg-[var(--neo-accent)] text-[var(--neo-accent-text)] shadow-neo font-bold'
+                      : 'border-[var(--neo-border)] bg-[var(--neo-bg)] text-[var(--neo-text)] hover:shadow-neo-sm'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm font-black tracking-tight">{f.name}</span>
+                    {isActive && (
+                      <span className="neo-badge bg-[#121212] text-white text-[10px] px-2 py-0.5 rounded-full font-mono">
+                        AKTIF
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs opacity-75">{f.desc}</span>
+                  <div className="mt-2 pt-2 border-t border-current/20 text-xs font-mono opacity-90 truncate">
+                    Pratinjau: &quot;{f.sample}&quot;
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ================= 7. SUB-PAGE: TENTANG WEBSITE (ABOUT) =================
+  if (settingsSubPage === 'about') {
+    return (
+      <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pt-4 md:pt-24 pb-28 md:pb-16 space-y-3.5 relative z-10">
+        <button
+          type="button"
+          onClick={() => setSettingsSubPage(null)}
+          className="neo-btn neo-btn-secondary px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>{t.back_to_settings}</span>
+        </button>
+
+        <div className="neo-card p-5 sm:p-6 rounded-2xl bg-[var(--neo-surface)] space-y-5 border-2 border-[var(--neo-border)] shadow-neo">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="neo-badge bg-[var(--neo-accent)] text-[var(--neo-accent-text)] text-xs font-black">
+                RELEASE v2.5.0
+              </span>
+              <span className="neo-badge bg-emerald-500 text-white text-xs font-bold">
+                PRODUKSI
+              </span>
+            </div>
+            <h1 className="text-lg sm:text-xl font-black text-[var(--neo-text)] tracking-tight">
+              Tentang UtilityHub Studio
+            </h1>
+            <p className="text-xs text-[var(--neo-text-muted)] mt-1 leading-relaxed">
+              UtilityHub adalah platform studio utilitas modern serbaguna bergaya Soft Neo-Brutalism. Dirancang khusus untuk kreator konten, desainer, dan pengguna harian tanpa iklan pop-up dan tanpa pelacakan data pribadi.
+            </p>
+          </div>
+
+          {/* Arsitektur Teknologi */}
+          <div className="p-4 rounded-xl border-2 border-[var(--neo-border)] bg-[var(--neo-bg)] space-y-2">
+            <h3 className="text-xs font-black uppercase tracking-wider text-[var(--neo-text)]">
+              Teknologi & Arsitektur Sistem:
+            </h3>
+            <ul className="text-xs text-[var(--neo-text-muted)] space-y-1.5 list-disc list-inside">
+              <li><strong>Framework:</strong> Next.js 14 App Router, TypeScript 5, React 18</li>
+              <li><strong>Styling & Motion:</strong> Tailwind CSS, Framer Motion, Soft Neo-Brutalism Design</li>
+              <li><strong>Media Engine:</strong> Web Audio API DSP, HTML5 Canvas, IndexedDB Media Cache</li>
+              <li><strong>Backend Real-Time:</strong> Multi-Engine Waterfall Scraper, TikTok DOM Hydration Scraper</li>
+            </ul>
+          </div>
+
+          {/* Komitmen Privasi */}
+          <div className="p-4 rounded-xl border-2 border-[var(--neo-border)] bg-[var(--neo-bg)] space-y-1.5">
+            <h3 className="text-xs font-black uppercase tracking-wider text-emerald-500">
+              🔒 Komitmen Privasi & Keamanan:
+            </h3>
+            <p className="text-xs text-[var(--neo-text-muted)] leading-relaxed">
+              Seluruh proses pemotongan audio, kompresi gambar, watermarking KTP, pembuatan pas foto, dan rendering dokumen PDF dieksekusi 100% secara lokal di dalam browser Anda menggunakan teknologi WebAssembly dan HTML5 Canvas. File sensitif Anda tidak pernah disimpan di server kami.
+            </p>
+          </div>
+
+          {/* Profil Kreator */}
+          <div className="pt-2 border-t border-[var(--neo-border)] space-y-2">
+            <span className="text-[11px] font-black uppercase tracking-wider text-[var(--neo-text-muted)] block">
+              Kreator & Pengembang:
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <a
+                href="https://github.com/rajibjugi02-ctrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="neo-btn p-3 rounded-xl border-2 border-[var(--neo-border)] bg-[var(--neo-surface)] text-xs font-bold flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <Github className="w-4 h-4" />
+                  <span>@rajibjugi02-ctrl</span>
+                </div>
+                <span>GitHub ↗</span>
+              </a>
+
+              <a
+                href="https://www.instagram.com/zaestraa/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="neo-btn p-3 rounded-xl border-2 border-[var(--neo-border)] bg-[var(--neo-surface)] text-xs font-bold flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <Instagram className="w-4 h-4 text-pink-500" />
+                  <span>@zaestraa</span>
+                </div>
+                <span>Instagram ↗</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ================= 8. SUB-PAGE: PUSAT BANTUAN & FAQ =================
+  if (settingsSubPage === 'help') {
+    const faqList = [
+      {
+        q: 'Bagaimana cara mengunduh video dari TikTok, X (Twitter), atau Facebook?',
+        a: 'Buka menu Media Downloader di Beranda. Klik platform yang Anda inginkan (misal: X atau Facebook). Salin tautan postingan / reels dari aplikasi, tempel di kolom input, lalu klik "Unduh Media". Tunggu proses ekstraksi selesai dan klik tombol "Download MP4 HD".',
+      },
+      {
+        q: 'Apakah aman mengunggah foto KTP atau Pas Foto di website ini?',
+        a: 'Sangat aman. Seluruh proses pembuatan Pas Foto, penghapusan background, dan pemberian Watermark KTP dijalankan murni di sisi browser (Client-Side HTML5 Canvas). Foto Anda tidak pernah diunggah atau disimpan ke server eksternal mana pun.',
+      },
+      {
+        q: 'Mengapa hasil pencarian TikTok Stalker tidak menampilkan profil?',
+        a: 'Pastikan username yang Anda masukkan sudah benar dan akun tidak dihapus. Sistem kami menggunakan arsitektur 3-Engine Waterfall yang membaca data langsung dari server TikTok. Jika akun baru saja dibuat atau berstatus privat ketat, coba gunakan tautan profil penuh (contoh: https://www.tiktok.com/@username).',
+      },
+      {
+        q: 'Bagaimana cara mengubah banner profil atau foto di Beranda?',
+        a: 'Arahkan kursor atau sentuh area banner potret di Beranda, lalu klik tombol "Ganti" di pojok kanan bawah. Anda dapat mengunggah video MP4 atau foto estetika apa pun yang akan tersimpan permanen di perangkat Anda menggunakan IndexedDB.',
+      },
+      {
+        q: 'Bagaimana cara melaporkan kendala atau meminta fitur baru?',
+        a: 'Anda dapat langsung membuat Issue di GitHub Repository resmi (@rajibjugi02-ctrl) atau mengirim pesan DM melalui Instagram kreator (@zaestraa).',
+      },
+    ];
+
+    return (
+      <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pt-4 md:pt-24 pb-28 md:pb-16 space-y-3.5 relative z-10">
+        <button
+          type="button"
+          onClick={() => setSettingsSubPage(null)}
+          className="neo-btn neo-btn-secondary px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>{t.back_to_settings}</span>
+        </button>
+
+        <div className="neo-card p-5 sm:p-6 rounded-2xl bg-[var(--neo-surface)] space-y-5 border-2 border-[var(--neo-border)] shadow-neo">
+          <div>
+            <h1 className="text-base sm:text-lg font-black text-[var(--neo-text)] tracking-tight">
+              Pusat Bantuan & Pertanyaan Umum (FAQ)
+            </h1>
+            <p className="text-xs text-[var(--neo-text-muted)] mt-0.5">
+              Panduan lengkap cara menggunakan utilitas dan solusi kendala teknis.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {faqList.map((item, idx) => (
+              <div
+                key={idx}
+                className="p-3.5 rounded-xl border-2 border-[var(--neo-border)] bg-[var(--neo-bg)] space-y-1.5"
+              >
+                <h3 className="text-xs font-black text-[var(--neo-text)] flex items-start gap-2">
+                  <span className="text-amber-500 font-mono">Q{idx + 1}.</span>
+                  <span>{item.q}</span>
+                </h3>
+                <p className="text-xs text-[var(--neo-text-muted)] leading-relaxed pl-6">
+                  {item.a}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ================= MAIN SETTINGS MENU =================
+  const menuItems = [
+    {
+      id: 'profile' as SettingsSubPage,
+      title: t.menu_profile,
+      desc: t.menu_profile_desc,
+      icon: Film,
+      badge: 'PERMANEN',
     },
-          {
-            id: 'theme' as SettingsSubPage,
-          title: t.menu_theme,
-          desc: t.menu_theme_desc,
-          icon: Palette,
-          badge: themeMode === 'light' ? 'PUTIH' : 'HITAM',
+    {
+      id: 'theme' as SettingsSubPage,
+      title: t.menu_theme,
+      desc: t.menu_theme_desc,
+      icon: Palette,
+      badge: themeMode === 'light' ? 'PUTIH' : 'HITAM',
     },
-          {
-            id: 'background' as SettingsSubPage,
-          title: t.menu_bg,
-          desc: t.menu_bg_desc,
-          icon: LayoutGrid,
-          badge: bgStyle.toUpperCase(),
+    {
+      id: 'font' as SettingsSubPage,
+      title: 'Gaya Font Website',
+      desc: 'Pilih jenis font teks utama website real-time',
+      icon: Type,
+      badge: (fontFamily || 'plus-jakarta').toUpperCase(),
     },
-          {
-            id: 'language' as SettingsSubPage,
-          title: t.menu_lang,
-          desc: t.menu_lang_desc,
-          icon: Languages,
-          badge: language.toUpperCase(),
+    {
+      id: 'background' as SettingsSubPage,
+      title: t.menu_bg,
+      desc: t.menu_bg_desc,
+      icon: LayoutGrid,
+      badge: bgStyle.toUpperCase(),
     },
-          {
-            id: 'storage' as SettingsSubPage,
-          title: t.menu_storage,
-          desc: t.menu_storage_desc,
-          icon: Database,
-          badge: 'Storage',
+    {
+      id: 'language' as SettingsSubPage,
+      title: t.menu_lang,
+      desc: t.menu_lang_desc,
+      icon: Languages,
+      badge: language.toUpperCase(),
     },
-          ];
+    {
+      id: 'about' as SettingsSubPage,
+      title: 'Tentang UtilityHub',
+      desc: 'Informasi sistem, arsitektur, dan kreator',
+      icon: Info,
+      badge: 'v2.5.0',
+    },
+    {
+      id: 'help' as SettingsSubPage,
+      title: 'Pusat Bantuan & FAQ',
+      desc: 'Panduan lengkap cara pakai semua alat',
+      icon: HelpCircle,
+      badge: 'FAQ',
+    },
+    {
+      id: 'storage' as SettingsSubPage,
+      title: t.menu_storage,
+      desc: t.menu_storage_desc,
+      icon: Database,
+      badge: 'Storage',
+    },
+  ];
 
           return (
           <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 pt-4 md:pt-24 pb-28 md:pb-16 space-y-3.5 relative z-10">

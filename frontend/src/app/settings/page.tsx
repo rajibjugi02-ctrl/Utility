@@ -7,12 +7,18 @@ import { SettingsView } from '@/components/SettingsView';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 
 export default function SettingsPage() {
-  const { setActiveTab, setActiveToolSlug } = useAppStore();
+  const { setActiveTab, setActiveToolSlug, fontFamily, themeMode, textSize, bgStyle } = useAppStore();
 
   useEffect(() => {
     setActiveTab('pengaturan');
     setActiveToolSlug(null);
-  }, [setActiveTab, setActiveToolSlug]);
+    if (typeof window !== 'undefined') {
+      document.body.setAttribute('data-font', fontFamily || 'plus-jakarta');
+      document.documentElement.setAttribute('data-theme', themeMode);
+      document.documentElement.setAttribute('data-size', textSize);
+      document.body.setAttribute('data-bg', bgStyle);
+    }
+  }, [setActiveTab, setActiveToolSlug, fontFamily, themeMode, textSize, bgStyle]);
 
   return (
     <main className="min-h-screen relative flex flex-col justify-between selection:bg-neutral-800 selection:text-white">

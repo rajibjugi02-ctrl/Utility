@@ -14,7 +14,7 @@ import { RealTimeProgress } from '@/components/RealTimeProgress';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 
 export default function HomePage() {
-  const { activeTab, setActiveTab, activeToolSlug, themeMode, textSize, bgStyle } = useAppStore();
+  const { activeTab, setActiveTab, activeToolSlug, themeMode, textSize, bgStyle, fontFamily } = useAppStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -45,7 +45,8 @@ export default function HomePage() {
 
     document.documentElement.setAttribute('data-size', textSize);
     document.body.setAttribute('data-bg', bgStyle);
-  }, [themeMode, textSize, bgStyle, setActiveTab]);
+    document.body.setAttribute('data-font', fontFamily || 'plus-jakarta');
+  }, [themeMode, textSize, bgStyle, fontFamily, setActiveTab]);
 
   return (
     <main className="min-h-screen relative flex flex-col justify-between selection:bg-neutral-800 selection:text-white">

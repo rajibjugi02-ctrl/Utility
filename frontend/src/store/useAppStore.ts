@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { AppLang } from '@/utils/i18n';
 
-export type ToolCategory = 'all' | 'creator' | 'audio' | 'docs' | 'images' | 'dev' | 'social';
-export type SettingsSubPage = 'profile' | 'theme' | 'background' | 'language' | 'storage' | null;
+export type ToolCategory = 'all' | 'downloader' | 'creator' | 'audio' | 'docs' | 'images' | 'dev' | 'social';
+export type SettingsSubPage = 'profile' | 'theme' | 'background' | 'font' | 'about' | 'help' | 'language' | 'storage' | null;
+export type FontFamily = 'plus-jakarta' | 'space-grotesk' | 'outfit' | 'jetbrains-mono' | 'inter' | 'playfair';
 export type ThemeMode =
   | 'light'
   | 'dark'
@@ -14,7 +15,14 @@ export type ThemeMode =
   | 'soft-lavender'
   | 'nordic-midnight';
 export type TextSize = 'compact' | 'normal' | 'large';
-export type BgStyle = 'solid' | 'dots' | 'grid' | 'shapes' | 'isometric';
+export type BgStyle =
+  | 'red-sakura'
+  | 'pink-sakura'
+  | 'grid'
+  | 'dots'
+  | 'solid'
+  | 'shapes'
+  | 'isometric';
 
 export interface HistoryItem {
   id: string;
@@ -63,6 +71,12 @@ interface AppState {
   setTextSize: (size: TextSize) => void;
   bgStyle: BgStyle;
   setBgStyle: (bg: BgStyle) => void;
+
+  fontFamily: FontFamily;
+  setFontFamily: (font: FontFamily) => void;
+
+  userCustomName: string;
+  setUserCustomName: (name: string) => void;
 
   username: string;
   setUsername: (name: string) => void;
@@ -124,8 +138,14 @@ export const useAppStore = create<AppState>()(
 
       textSize: 'normal',
       setTextSize: (textSize) => set({ textSize }),
-      bgStyle: 'dots',
+      bgStyle: 'red-sakura',
       setBgStyle: (bgStyle) => set({ bgStyle }),
+
+      fontFamily: 'plus-jakarta',
+      setFontFamily: (fontFamily) => set({ fontFamily }),
+
+      userCustomName: '',
+      setUserCustomName: (userCustomName) => set({ userCustomName }),
 
       username: 'Guest_7842',
       setUsername: (username) => set({ username }),
@@ -192,10 +212,21 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'solid-utility-storage-v3',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => {
+        if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+          return window.localStorage;
+        }
+        return {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+        };
+      }),
       partialize: (state) => ({
         themeMode: state.themeMode,
         username: state.username,
+        userCustomName: state.userCustomName,
+        fontFamily: state.fontFamily,
         avatarSeed: state.avatarSeed,
         isAdmin: state.isAdmin,
         history: state.history,

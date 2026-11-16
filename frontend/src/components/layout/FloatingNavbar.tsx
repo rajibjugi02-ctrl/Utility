@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Compass, History, Settings, Command, Sun, Moon } from 'lucide-react';
+import { Compass, History, Settings, Sun, Moon } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { i18n } from '@/utils/i18n';
 
 export const FloatingNavbar: React.FC = () => {
-  const router = useRouter();
   const pathname = usePathname();
 
   const {
@@ -33,7 +33,7 @@ export const FloatingNavbar: React.FC = () => {
       const currentY = window.scrollY;
       setScrolled(currentY > 20);
 
-      // Auto-hide when scrolling down past 80px to prevent overlapping category filters
+      // Auto-hide when scrolling down past 80px
       if (currentY > 80) {
         if (currentY > lastY + 5) {
           setVisible(false);
@@ -53,34 +53,27 @@ export const FloatingNavbar: React.FC = () => {
   const t = i18n[language] || i18n['id'];
 
   const navItems = [
-    { id: 'beranda', label: t.nav_home, icon: Compass },
-    { id: 'riwayat', label: t.nav_history, icon: History },
-    { id: 'pengaturan', label: t.nav_settings, icon: Settings },
+    { id: 'beranda', href: '/', label: t.nav_home, icon: Compass },
+    { id: 'riwayat', href: '/history', label: t.nav_history, icon: History },
+    { id: 'pengaturan', href: '/settings', label: t.nav_settings, icon: Settings },
   ] as const;
 
   // Determine active tab reliably from URL pathname
-  let currentActiveTab: 'beranda' | 'riwayat' | 'pengaturan' = activeTab;
+  let currentActiveTab: 'beranda' | 'riwayat' | 'pengaturan' = 'beranda';
   if (pathname === '/history') {
     currentActiveTab = 'riwayat';
   } else if (pathname === '/settings') {
     currentActiveTab = 'pengaturan';
-  } else if (pathname === '/') {
-    currentActiveTab = activeTab || 'beranda';
-  } else if (pathname?.startsWith('/tools')) {
+  } else {
     currentActiveTab = 'beranda';
   }
 
-  const handleTabClick = (id: 'beranda' | 'riwayat' | 'pengaturan') => {
+  const handleNavClick = (id: 'beranda' | 'riwayat' | 'pengaturan') => {
     setActiveTab(id);
     setActiveToolSlug(null);
     setSettingsSubPage(null);
-
-    if (id === 'beranda') {
-      router.push('/');
-    } else if (id === 'riwayat') {
-      router.push('/history');
-    } else if (id === 'pengaturan') {
-      router.push('/settings');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   };
 
@@ -97,30 +90,25 @@ export const FloatingNavbar: React.FC = () => {
         className="pointer-events-auto flex items-center justify-between md:justify-start gap-1.5 px-3 py-1.5 rounded-full neo-card bg-[var(--neo-surface)] max-w-fit shadow-neo"
       >
         {/* Brand / Home Link */}
-        <button
-          type="button"
-          onClick={() => handleTabClick('beranda')}
-          className="flex items-center gap-2 px-2.5 py-1 text-[var(--neo-text)] hover:opacity-80 transition-opacity cursor-pointer font-bold text-xs"
+        <Link
+          href="/"
+          onClick={() => handleNavClick('beranda')}
+          className="flex items-center px-2.5 py-1 text-[var(--neo-text)] hover:opacity-80 transition-opacity cursor-pointer font-black text-xs sm:text-sm tracking-tight"
         >
-          <img
-            src="/logo.png"
-            alt="UtilityHub"
-            className="w-5 h-5 object-contain"
-          />
-          <span className="tracking-tight font-black">UtilityHub</span>
-        </button>
+          <span>UtilityHub</span>
+        </Link>
 
-        {/* Sliding Pill Navigation Tabs (Desktop & Tablet) */}
+        {/* Sliding Pill Navigation Tabs */}
         <div className="hidden md:flex items-center gap-1 relative">
           <div className="h-4 w-px bg-[var(--neo-border)] mx-1" />
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentActiveTab === item.id;
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
-                onClick={() => handleTabClick(item.id)}
+                href={item.href}
+                onClick={() => handleNavClick(item.id)}
                 className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer select-none flex items-center gap-1.5 ${
                   isActive
                     ? 'text-[var(--neo-accent-text)]'
@@ -137,7 +125,7 @@ export const FloatingNavbar: React.FC = () => {
                     transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
                 )}
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -148,7 +136,7 @@ export const FloatingNavbar: React.FC = () => {
         <button
           type="button"
           onClick={toggleThemeMode}
-          className="neo-btn p-1.5 rounded-full bg-[var(--neo-surface)] text-[var(--neo-text)] ml-1"
+          className="neo-btn p-1.5 rounded-full bg-[var(--neo-surface)] text-[var(--neo-text)] ml-1 cursor-pointer"
           title="Toggle Dark/Light Mode"
         >
           {mounted && themeMode === 'light' ? (
