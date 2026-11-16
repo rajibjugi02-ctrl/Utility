@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Image as ImageIcon, Download, Upload, ArrowRight, CheckCircle2, Sliders, RefreshCw } from 'lucide-react';
+import { Download, Upload, CheckCircle2, Sliders, RefreshCw } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { ProcessCard } from '../common/ProcessCard';
 

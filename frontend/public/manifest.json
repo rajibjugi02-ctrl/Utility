@@ -1,22 +1,24 @@
 {
-  "name": "Glassmorphism All-in-One Utility Hub",
-  "short_name": "GlassHub",
-  "description": "High-performance All-in-One Media Downloader, Alight Motion Preset Extractor, and PDF Studio",
+  "name": "UtilityHub - All in One Media Downloader & Tools",
+  "short_name": "UtilityHub",
+  "description": "High-performance All-in-One Media Downloader HD, WhatsApp Status Optimizer, Alight Motion Preset Extractor, and Creator Tools",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#080c16",
-  "theme_color": "#00f0ff",
+  "background_color": "#121212",
+  "theme_color": "#FFDE59",
   "orientation": "portrait",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

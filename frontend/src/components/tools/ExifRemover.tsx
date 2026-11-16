@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import ExifReader from 'exifreader';
-import { Shield, ShieldAlert, ShieldCheck, Upload, Download, Eye, CheckCircle2, FileImage } from 'lucide-react';
+import { Shield, ShieldAlert, ShieldCheck, Upload, Download, CheckCircle2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 interface ExifSummary {

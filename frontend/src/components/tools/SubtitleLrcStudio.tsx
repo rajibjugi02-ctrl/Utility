@@ -1,20 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import {
-  Upload,
-  Play,
-  Pause,
-  Download,
-  Plus,
-  Trash2,
-  Copy,
-  Check,
-  Clock,
-  FileText,
-  Music2,
-  CheckCircle2,
-} from 'lucide-react';
+import { Upload, Play, Pause, Download, Plus, Trash2, Clock, FileText, Music2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 interface SubtitleLine {

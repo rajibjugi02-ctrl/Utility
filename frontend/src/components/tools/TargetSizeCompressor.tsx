@@ -1,17 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import {
-  Upload,
-  Download,
-  FileImage,
-  ArrowRight,
-  CheckCircle2,
-  Sliders,
-  Sparkles,
-  AlertCircle,
-  RefreshCw,
-} from 'lucide-react';
+import { Upload, Download, FileImage, CheckCircle2, Sliders } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 export const TargetSizeCompressor: React.FC = () => {

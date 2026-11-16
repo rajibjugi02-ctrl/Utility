@@ -1,27 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  Search,
-  UserCheck,
-  CheckCircle2,
-  Lock,
-  Globe,
-  ExternalLink,
-  Download,
-  Copy,
-  Check,
-  Share2,
-  Calendar,
-  Heart,
-  Users,
-  Video,
-  UserPlus,
-  Flame,
-  X,
-  AlertCircle,
-  Sparkles,
-} from 'lucide-react';
+import { Search, UserCheck, CheckCircle2, Globe, ExternalLink, Download, Copy, Check, Share2, Heart, Users, Video, UserPlus, Flame, X, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { ProcessCard } from '../common/ProcessCard';
 

@@ -51,9 +51,6 @@ class DownloadRequest(BaseModel):
     task_id: str
     service_type: Optional[str] = "generic"
 
-class AdminVerifyRequest(BaseModel):
-    password: str
-
 # 1. System Status
 @app.get("/api/status")
 async def get_system_status():
@@ -174,27 +171,3 @@ async def get_downloaded_file(filename: str):
         filename=clean_name,
         media_type="application/octet-stream"
     )
-
-# 7. Easter Egg: Admin Password Verification
-@app.post("/api/admin/verify")
-async def verify_admin(req: AdminVerifyRequest):
-    ADMIN_PASS = os.getenv("ADMIN_PASSWORD", "admin123")
-    if req.password == ADMIN_PASS:
-        mem = psutil.virtual_memory()
-        disk = psutil.disk_usage(".")
-        return {
-            "authorized": True,
-            "role": "SuperAdmin / Root",
-            "server_telemetry": {
-                "os": os.name,
-                "cpu_count": psutil.cpu_count(logical=True),
-                "cpu_usage": f"{psutil.cpu_percent()}%",
-                "ram_usage": f"{mem.percent}% ({round(mem.used/(1024*1024))}MB / {round(mem.total/(1024*1024))}MB)",
-                "disk_free": f"{round(disk.free / (1024*1024*1024), 2)} GB",
-                "cached_files_count": len(os.listdir(DOWNLOAD_DIR)),
-                "ffmpeg_location": get_ffmpeg_binary() or "Embedded/System",
-            },
-            "token": "admin_session_token_xyz"
-        }
-    else:
-        raise HTTPException(status_code=401, detail="Kata sandi admin salah.")

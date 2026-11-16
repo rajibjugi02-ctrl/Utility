@@ -1,20 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  Film,
-  Upload,
-  Download,
-  Play,
-  Pause,
-  Scissors,
-  Type,
-  Sparkles,
-  MessageSquare,
-  Check,
-  RefreshCw,
-  Clock,
-} from 'lucide-react';
+import { Film, Upload, Download, Play, Pause, Scissors, Type, Sparkles, MessageSquare, Check, RefreshCw } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function VideoGifStickerMaker() {

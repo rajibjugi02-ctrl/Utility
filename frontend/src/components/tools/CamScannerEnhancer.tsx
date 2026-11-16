@@ -1,20 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import {
-  FileCheck2,
-  Upload,
-  Download,
-  RotateCw,
-  Sliders,
-  Sparkles,
-  FileText,
-  Eye,
-  Check,
-  RefreshCw,
-  Sun,
-  Contrast,
-} from 'lucide-react';
+import { FileCheck2, Upload, Download, RotateCw, Sliders, Sparkles, FileText, Eye, Check, RefreshCw, Contrast } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 type ScannerPreset = 'magic-bw' | 'clean-color' | 'grayscale' | 'sharp-original';

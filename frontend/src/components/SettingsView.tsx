@@ -4,13 +4,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   ArrowLeft,
   Film,
-  User,
   Palette,
   Languages,
   Database,
-  UploadCloud,
   CheckCircle2,
-  Trash2,
   RefreshCw,
   Sun,
   Moon,
@@ -19,11 +16,8 @@ import {
   Type,
   Info,
   HelpCircle,
-  ChevronDown,
-  ChevronUp,
   Github,
   Instagram,
-  Sparkles,
 } from 'lucide-react';
 import {
   useAppStore,

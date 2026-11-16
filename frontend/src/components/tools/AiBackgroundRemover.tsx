@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Wand2, UploadCloud, Download, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Wand2, Download } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 export const AiBackgroundRemover: React.FC = () => {

@@ -1,21 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import {
-  Receipt,
-  Plus,
-  Trash2,
-  Download,
-  Printer,
-  PenTool,
-  CheckCircle2,
-  Building,
-  User,
-  CreditCard,
-  Sparkles,
-  RotateCcw,
-  Upload,
-} from 'lucide-react';
+import { Receipt, Plus, Trash2, Download, Printer, PenTool, Building, User, RotateCcw } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 interface InvoiceItem {

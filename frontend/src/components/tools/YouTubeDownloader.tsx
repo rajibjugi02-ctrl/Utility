@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Youtube, Download, Sparkles, Music, Film, CheckCircle2 } from 'lucide-react';
+import { Download, Sparkles, Music, CheckCircle2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { ProcessCard } from '../common/ProcessCard';
 

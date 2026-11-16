@@ -1,18 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  Upload,
-  Download,
-  Crop,
-  Palette,
-  Maximize2,
-  CheckCircle2,
-  User,
-  Grid,
-  FileImage,
-  RefreshCw,
-} from 'lucide-react';
+import { Upload, Download, Crop, CheckCircle2, User, Grid } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 type PasFotoSize = '2x3' | '3x4' | '4x6';

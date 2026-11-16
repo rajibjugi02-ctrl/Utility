@@ -2,17 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import JSZip from 'jszip';
-import {
-  Upload,
-  Download,
-  FileArchive,
-  RefreshCw,
-  Trash2,
-  CheckCircle2,
-  ArrowRight,
-  Sliders,
-  FileText,
-} from 'lucide-react';
+import { Upload, Download, FileArchive, Trash2, ArrowRight, Sliders } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 interface FileToRename {

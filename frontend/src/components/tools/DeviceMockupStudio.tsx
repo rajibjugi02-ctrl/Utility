@@ -1,17 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  Upload,
-  Download,
-  Smartphone,
-  Laptop,
-  Globe,
-  Palette,
-  CheckCircle2,
-  Sliders,
-  Sparkles,
-} from 'lucide-react';
+import { Upload, Download, Smartphone, Laptop, Globe } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 type DeviceType = 'iphone' | 'macbook' | 'browser';

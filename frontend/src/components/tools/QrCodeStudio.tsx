@@ -2,19 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import QRCode from 'qrcode';
-import {
-  QrCode as QrIcon,
-  Download,
-  Upload,
-  Link as LinkIcon,
-  MessageSquare,
-  Image as ImageIcon,
-  CheckCircle2,
-  Sliders,
-  RefreshCw,
-  Sparkles,
-  Info,
-} from 'lucide-react';
+import { Download, Upload, Link as LinkIcon, MessageSquare, Sliders, Sparkles } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 type InputMode = 'url' | 'text' | 'wifi' | 'whatsapp';

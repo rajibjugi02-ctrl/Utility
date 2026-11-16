@@ -1,20 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  VolumeX,
-  Volume2,
-  Upload,
-  Download,
-  Play,
-  Pause,
-  Music,
-  Sliders,
-  Sparkles,
-  Check,
-  RefreshCw,
-  Film,
-} from 'lucide-react';
+import { VolumeX, Upload, Download, Play, Pause, Music, Sliders, Sparkles, Check, RefreshCw, Film } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 export default function VideoAudioMuteReplacer() {

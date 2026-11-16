@@ -1,18 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  Mic,
-  Square,
-  Play,
-  Pause,
-  Upload,
-  Download,
-  Radio,
-  Sparkles,
-  CheckCircle2,
-  Volume2,
-} from 'lucide-react';
+import { Mic, Square, Play, Pause, Upload, Download, Radio, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 type VoicePreset = 'anonymous' | 'robot' | 'chipmunk' | 'walkietalkie' | 'megaphone';

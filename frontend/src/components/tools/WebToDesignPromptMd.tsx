@@ -1,21 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Globe,
-  FileCode,
-  Download,
-  Copy,
-  Check,
-  Sparkles,
-  ExternalLink,
-  Layers,
-  Palette,
-  Type,
-  FileText,
-  CheckCircle2,
-  AlertCircle,
-} from 'lucide-react';
+import { Globe, FileCode, Download, Copy, Check, Sparkles, ExternalLink, Layers, Palette, Type, FileText, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { ProcessCard } from '../common/ProcessCard';
 

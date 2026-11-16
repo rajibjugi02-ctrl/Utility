@@ -1,24 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Film,
-  Search,
-  Sparkles,
-  Filter,
-  Star,
-  Clock,
-  Play,
-  Copy,
-  Check,
-  ExternalLink,
-  X,
-  Share2,
-  TrendingUp,
-  Award,
-  Flame,
-  ArrowRight,
-} from 'lucide-react';
+import { Film, Search, Sparkles, Filter, Star, X, TrendingUp, Award, Flame, ArrowRight } from 'lucide-react';
 import { MovieItem } from '@/app/api/movies/route';
 import { MovieDetailView } from './MovieDetailView';
 

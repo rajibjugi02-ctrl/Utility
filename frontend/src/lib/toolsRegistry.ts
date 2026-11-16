@@ -1,9 +1,7 @@
 import React from 'react';
 import {
   Video,
-  Music2,
   FileText,
-  Youtube,
   Instagram,
   Layers,
   Globe,
@@ -23,6 +21,7 @@ import {
   UserCheck,
   Film,
   Download,
+  Sparkles,
 } from 'lucide-react';
 import { ToolCategory } from '@/store/useAppStore';
 
@@ -104,6 +103,17 @@ export const toolsCatalog: ToolItem[] = [
     icon: Eye,
     iconColor: 'text-sky-500',
     iconBg: 'bg-sky-500/10',
+  },
+  {
+    id: 'wa-status-hd',
+    title: 'Status WhatsApp HD (Anti-Burem)',
+    desc: 'Optimalkan video & foto agar status WhatsApp tetap tajam tanpa kompresi buram + auto-split 30 detik.',
+    category: 'creator',
+    badge: 'ANTI-BUREM HD',
+    icon: Sparkles,
+    iconColor: 'text-emerald-500',
+    iconBg: 'bg-emerald-500/10',
+    isNew: true,
   },
   {
     id: 'video-gif-sticker-maker',
@@ -303,6 +313,14 @@ export const SLUG_ALIASES: Record<string, string> = {
   'downloader': 'media-downloader',
   'multi-downloader': 'media-downloader',
   'media': 'media-downloader',
+
+  // WhatsApp Status HD Aliases -> wa-status-hd
+  'wa-status-hd': 'wa-status-hd',
+  'status-wa': 'wa-status-hd',
+  'status-wa-hd': 'wa-status-hd',
+  'anti-burem': 'wa-status-hd',
+  'whatsapp-hd': 'wa-status-hd',
+  'wa-hd': 'wa-status-hd',
 
   // Movie Finder Aliases -> movie-finder
   'rekomendasi-film': 'movie-finder',

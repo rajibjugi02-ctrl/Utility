@@ -1,19 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import {
-  ShieldCheck,
-  Upload,
-  Download,
-  RotateCw,
-  Eye,
-  Lock,
-  Layers,
-  Sparkles,
-  Info,
-  RefreshCw,
-  Check,
-} from 'lucide-react';
+import { ShieldCheck, Upload, Download, Eye, Lock, Sparkles, Info, RefreshCw, Check } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 const PRESET_TEMPLATES = [

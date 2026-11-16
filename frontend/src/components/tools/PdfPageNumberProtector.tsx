@@ -1,18 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Stamp,
-  Upload,
-  Download,
-  FileText,
-  Sliders,
-  Check,
-  RefreshCw,
-  Sparkles,
-  Layers,
-  Info,
-} from 'lucide-react';
+import { Stamp, Upload, Download, FileText, Sliders, Check, RefreshCw, Sparkles, Info } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 type NumberPosition = 'bottom-center' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-center';

@@ -1,23 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Music2,
-  ExternalLink,
-  Copy,
-  Check,
-  Play,
-  Pause,
-  AlertCircle,
-  HelpCircle,
-  Sparkles,
-  Disc,
-  Clock,
-  Calendar,
-  Layers,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import { ExternalLink, Copy, Check, Play, Pause, AlertCircle, HelpCircle, Sparkles, Disc, Clock, Calendar, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { ProcessCard } from '../common/ProcessCard';
 import { SpotifyTrackDetails } from '@/lib/spotifyClient';

@@ -1,18 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import {
-  Camera,
-  Upload,
-  Download,
-  Trash2,
-  Sparkles,
-  Palette,
-  Sticker,
-  Plus,
-  RotateCw,
-  Image as ImageIcon,
-} from 'lucide-react';
+import { Camera, Upload, Download, Trash2, Palette, Sticker, Plus, RotateCw, Image as ImageIcon } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 type FilterType = 'normal' | 'bw' | 'vintage' | 'warm' | 'cool';

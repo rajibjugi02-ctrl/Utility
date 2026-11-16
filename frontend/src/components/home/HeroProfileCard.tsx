@@ -1,22 +1,19 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { UAParser } from 'ua-parser-js';
 import {
   Clock,
   Smartphone,
   Monitor,
   Battery,
-  KeyRound,
-  X,
   User,
   ExternalLink,
   Github,
   Instagram,
   Activity,
   Radio,
-  Lock,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -115,8 +112,6 @@ export const HeroProfileCard: React.FC = () => {
   const {
     userCustomName,
     setUserCustomName,
-    isAdmin,
-    setIsAdmin,
   } = useAppStore();
 
   const [mounted, setMounted] = useState(false);
@@ -141,12 +136,6 @@ export const HeroProfileCard: React.FC = () => {
   const [pingMs, setPingMs] = useState(42);
   const [customNameInput, setCustomNameInput] = useState('');
   const [savedToast, setSavedToast] = useState(false);
-
-  // Admin Modal state
-  const [showAdminModal, setShowAdminModal] = useState(false);
-  const [adminPass, setAdminPass] = useState('');
-  const [adminError, setAdminError] = useState('');
-  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -176,7 +165,7 @@ export const HeroProfileCard: React.FC = () => {
               if (isBrave) {
                 browser = 'Brave';
               }
-            } catch {}
+            } catch { }
           }
 
           if (browser === 'Browser' || browser === 'Chrome') {
@@ -245,11 +234,11 @@ export const HeroProfileCard: React.FC = () => {
                     os = 'Windows 10';
                   }
                 }
-              } catch {}
+              } catch { }
             }
           }
         }
-      } catch {}
+      } catch { }
 
       setDeviceInfo({
         os,
@@ -331,27 +320,6 @@ export const HeroProfileCard: React.FC = () => {
     }
   };
 
-  const handleAdminAuth = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsVerifying(true);
-    setAdminError('');
-
-    setTimeout(() => {
-      if (adminPass === 'admin123' || adminPass === 'zaestraa' || adminPass === 'kuro123') {
-        setIsAdmin(true, {
-          token: 'root_session_' + Date.now(),
-          loginTime: new Date().toISOString(),
-          permissions: ['ALL_PERMISSIONS'],
-        });
-        setShowAdminModal(false);
-        setAdminPass('');
-      } else {
-        setAdminError('Sandi root/admin tidak cocok!');
-      }
-      setIsVerifying(false);
-    }, 600);
-  };
-
   if (!mounted) {
     return (
       <section className="w-full max-w-5xl mx-auto pt-2 pb-2 px-3 sm:px-4">
@@ -364,7 +332,7 @@ export const HeroProfileCard: React.FC = () => {
     <section className="w-full max-w-5xl mx-auto pt-2 pb-2 px-3 sm:px-4 relative z-10">
       {/* Neo-Brutalist Main Card - Landscape on Desktop Window, Vertical on Mobile */}
       <div className="neo-card p-4 sm:p-5 md:p-6 rounded-3xl bg-[var(--neo-surface)] border-2 border-[var(--neo-border)] shadow-neo flex flex-col md:flex-row gap-5 md:gap-6 items-stretch">
-        
+
         {/* Sisi Kiri (Desktop) / Atas (Mobile): Bingkai Video Potret Vertikal Permanen */}
         <div className="w-full md:w-[270px] lg:w-[290px] shrink-0 aspect-[3/4] md:aspect-auto rounded-2xl border-2 border-[#121212] shadow-[4px_4px_0px_#121212] overflow-hidden bg-black relative">
           {!videoError ? (
@@ -522,29 +490,23 @@ export const HeroProfileCard: React.FC = () => {
               </div>
             </div>
 
-            {/* Row 7: Role */}
+            {/* Row 7: Status Akun */}
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-[var(--neo-text)] font-bold shrink-0">
-                <span>Role</span>
+                <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
+                <span>Status Akun</span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="neo-badge bg-[var(--neo-surface)] text-[var(--neo-text)] font-bold text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full border-2 border-[var(--neo-border)] whitespace-nowrap shrink-0">
-                  {isAdmin ? 'ADMIN' : 'MEMBER'}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="neo-badge bg-emerald-500/10 text-emerald-500 font-bold text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded-full border border-emerald-500/40 whitespace-nowrap shrink-0">
+                  MEMBER
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setShowAdminModal(true)}
-                  className="neo-btn px-2.5 sm:px-3 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-[#121212] text-white dark:bg-[#F4F4F0] dark:text-[#121212] border border-[var(--neo-border)] shadow-sm cursor-pointer whitespace-nowrap shrink-0"
-                >
-                  {isAdmin ? 'Keluar' : 'Login'}
-                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Baris Tautan Sosial Pembuat (Creator Socials) */}
+      {/* Baris Tautan Sosial Pembuat */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 mt-3">
         <a
           href="https://www.instagram.com/zaestraa/"
@@ -572,79 +534,6 @@ export const HeroProfileCard: React.FC = () => {
           <ExternalLink className="w-3.5 h-3.5 text-[var(--neo-text-muted)] group-hover:text-[var(--neo-text)] transition-colors" />
         </a>
       </div>
-
-      {/* Admin Login Modal */}
-      <AnimatePresence>
-        {showAdminModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-xs neo-card p-5 rounded-2xl bg-[var(--neo-surface)] border-2 border-[var(--neo-border)] shadow-neo space-y-4"
-            >
-              <div className="flex items-center justify-between pb-2 border-b border-[var(--neo-border)]">
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-amber-500" />
-                  <h3 className="font-bold text-sm text-[var(--neo-text)]">
-                    {isAdmin ? 'Status Akses Root' : 'Autentikasi Admin'}
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAdminModal(false)}
-                  className="p-1 rounded-full text-[var(--neo-text-muted)] hover:text-[var(--neo-text)]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {isAdmin ? (
-                <div className="space-y-3">
-                  <p className="text-xs text-[var(--neo-text-muted)]">
-                    Anda sedang login dengan hak akses Administrator.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAdmin(false, null);
-                      setShowAdminModal(false);
-                    }}
-                    className="w-full py-2 rounded-xl bg-rose-500 text-white font-bold text-xs shadow-sm hover:bg-rose-600"
-                  >
-                    Logout Admin
-                  </button>
-                </div>
-              ) : (
-                <form onSubmit={handleAdminAuth} className="space-y-3">
-                  <p className="text-[11px] text-[var(--neo-text-muted)]">
-                    Masukkan password akses sistem admin:
-                  </p>
-                  <input
-                    type="password"
-                    placeholder="Password admin..."
-                    value={adminPass}
-                    onChange={(e) => setAdminPass(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl neo-input text-xs border-2 border-[var(--neo-border)] bg-[var(--neo-bg)] font-mono"
-                    autoFocus
-                  />
-                  {adminError && (
-                    <p className="text-[10px] text-rose-500 font-bold">{adminError}</p>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={isVerifying || !adminPass}
-                    className="w-full py-2 rounded-xl neo-btn neo-btn-primary font-bold text-xs flex items-center justify-center gap-2"
-                  >
-                    <KeyRound className="w-3.5 h-3.5" />
-                    <span>{isVerifying ? 'Memverifikasi...' : 'Masuk Admin'}</span>
-                  </button>
-                </form>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </section>
   );
 };

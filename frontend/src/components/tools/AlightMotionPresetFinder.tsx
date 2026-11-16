@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Layers, Sparkles, ExternalLink, Copy, Check, FileCode, CheckCircle2, Link2, MessageSquare } from 'lucide-react';
+import { Sparkles, ExternalLink, Copy, Check, FileCode, CheckCircle2, Link2, MessageSquare } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { ProcessCard } from '../common/ProcessCard';
 
@@ -155,7 +155,7 @@ export const AlightMotionPresetFinder: React.FC = () => {
           </div>
 
           {/* Preset Links List Classified */}
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[var(--neo-text)]">
                 Daftar Preset Alight Motion ({data.presets?.length || 0} Ditemukan)
@@ -163,41 +163,48 @@ export const AlightMotionPresetFinder: React.FC = () => {
             </div>
 
             {data.presets && data.presets.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {data.presets.map((preset: any, idx: number) => {
-                  const is5Mb = preset.badgeType === 'direct_5mb' || preset.service?.includes('5MB');
-                  const isXml = preset.badgeType === 'xml_drive' || preset.service?.includes('XML');
+                  const targetUrl = preset.resolvedUrl || preset.url;
+                  const is5Mb = preset.badgeType === 'direct_5mb' || preset.type === 'alight.link' || targetUrl.includes('alight.link') || targetUrl.includes('am.link');
+                  const isXml = preset.badgeType === 'xml_drive' || preset.type === 'gdrive' || preset.type === 'xml';
 
                   return (
                     <div
                       key={idx}
-                      className="p-3.5 rounded-xl border-2 border-[var(--neo-border)] bg-[var(--neo-surface)] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      className={`p-4 rounded-2xl border-2 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-sm ${
+                        is5Mb
+                          ? 'border-emerald-500/50 bg-emerald-500/5 hover:border-emerald-500'
+                          : isXml
+                          ? 'border-indigo-500/50 bg-indigo-500/5 hover:border-indigo-500'
+                          : 'border-amber-500/50 bg-amber-500/5 hover:border-amber-500'
+                      }`}
                     >
-                      <div className="flex items-start gap-2.5 overflow-hidden">
+                      <div className="flex items-start gap-3 overflow-hidden">
                         <div
-                          className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                          className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center shrink-0 mt-0.5 shadow-sm ${
                             is5Mb
-                              ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/40'
+                              ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/60'
                               : isXml
-                              ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/40'
-                              : 'bg-amber-500/10 text-amber-500 border-amber-500/40'
+                              ? 'bg-indigo-500/20 text-indigo-500 border-indigo-500/60'
+                              : 'bg-amber-500/20 text-amber-500 border-amber-500/60'
                           }`}
                         >
                           {is5Mb ? <Link2 className="w-4 h-4" /> : <FileCode className="w-4 h-4" />}
                         </div>
 
-                        <div className="truncate space-y-0.5">
-                          <div className="flex items-center gap-2">
+                        <div className="truncate space-y-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             <span
-                              className={`neo-badge text-[10px] font-bold ${
+                              className={`neo-badge text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                 is5Mb
-                                  ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/40'
+                                  ? 'bg-emerald-500 text-white border-emerald-600'
                                   : isXml
-                                  ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/40'
-                                  : 'bg-amber-500/10 text-amber-500 border-amber-500/40'
+                                  ? 'bg-indigo-500 text-white border-indigo-600'
+                                  : 'bg-amber-500 text-white border-amber-600'
                               }`}
                             >
-                              {preset.service}
+                              {preset.service || (is5Mb ? 'Preset Direct <5MB (Alight Motion)' : 'Preset XML')}
                             </span>
                             {preset.source && (
                               <span className="text-[10px] text-[var(--neo-text-muted)] font-mono">
@@ -205,34 +212,50 @@ export const AlightMotionPresetFinder: React.FC = () => {
                               </span>
                             )}
                           </div>
-                          <span className="text-xs font-mono text-[var(--neo-text)] truncate block">
-                            {preset.url}
+                          <span className="text-xs font-mono font-bold text-[var(--neo-text)] truncate block">
+                            {targetUrl}
                           </span>
+                          {preset.resolvedUrl && preset.resolvedUrl !== preset.url && (
+                            <span className="text-[10px] text-[var(--neo-text-muted)] font-mono truncate block">
+                              Asal: {preset.url}
+                            </span>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
                         <button
                           type="button"
-                          onClick={() => handleCopy(preset.url, idx)}
-                          className="neo-btn px-3 py-1.5 rounded-lg text-xs neo-btn-secondary"
+                          onClick={() => handleCopy(targetUrl, idx)}
+                          className="neo-btn px-3 py-2 rounded-xl text-xs neo-btn-secondary flex items-center gap-1.5 shadow-sm"
                         >
                           {copiedIndex === idx ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-500" />
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-500" />
+                              <span className="text-emerald-500 font-bold">Disalin!</span>
+                            </>
                           ) : (
-                            <Copy className="w-3.5 h-3.5" />
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>Salin Link</span>
+                            </>
                           )}
-                          <span>{copiedIndex === idx ? 'Disalin' : 'Salin Link'}</span>
                         </button>
 
                         <a
-                          href={preset.url}
+                          href={targetUrl}
                           target="_blank"
-                          rel="noreferrer"
-                          className="neo-btn px-3 py-1.5 rounded-lg text-xs neo-btn-primary"
+                          rel="noopener noreferrer"
+                          className={`neo-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm text-white ${
+                            is5Mb
+                              ? 'bg-emerald-600 hover:bg-emerald-700'
+                              : isXml
+                              ? 'bg-indigo-600 hover:bg-indigo-700'
+                              : 'bg-amber-600 hover:bg-amber-700'
+                          }`}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                          <span>Buka Preset</span>
+                          <span>Import ke Alight Motion ↗</span>
                         </a>
                       </div>
                     </div>

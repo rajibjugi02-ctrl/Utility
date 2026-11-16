@@ -21,7 +21,9 @@ export async function GET(req: NextRequest) {
       Accept: '*/*',
     };
 
-    if (targetUrl.includes('tiktok.com') || targetUrl.includes('tikwm.com')) {
+    if (targetUrl.includes('tikcdn.io') || targetUrl.includes('ssstik')) {
+      upstreamHeaders['Referer'] = 'https://ssstik.io/';
+    } else if (targetUrl.includes('tiktok.com') || targetUrl.includes('tikwm.com')) {
       upstreamHeaders['Referer'] = 'https://www.tiktok.com/';
     } else if (targetUrl.includes('capcut.com')) {
       upstreamHeaders['Referer'] = 'https://www.capcut.com/';

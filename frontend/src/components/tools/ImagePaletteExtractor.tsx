@@ -1,16 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import {
-  Upload,
-  Download,
-  Palette,
-  Copy,
-  Check,
-  CheckCircle2,
-  Image as ImageIcon,
-  Sparkles,
-} from 'lucide-react';
+import { Upload, Download, Palette, Check } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 interface ColorToken {

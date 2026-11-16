@@ -1,25 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import {
-  Upload,
-  Play,
-  Pause,
-  Camera,
-  Download,
-  Eye,
-  Sliders,
-  CheckCircle2,
-  Heart,
-  MessageCircle,
-  Bookmark,
-  Share2,
-  Music,
-  Disc3,
-  ThumbsUp,
-  ThumbsDown,
-  Repeat,
-} from 'lucide-react';
+import { Upload, Play, Pause, Camera, Download, Eye, CheckCircle2, Heart, MessageCircle, Bookmark, Share2, Music, Disc3, ThumbsUp, ThumbsDown, Repeat } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 type PlatformOverlay = 'tiktok' | 'reels' | 'shorts' | 'grid' | 'none';
