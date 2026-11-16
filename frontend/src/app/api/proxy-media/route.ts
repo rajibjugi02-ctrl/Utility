@@ -23,6 +23,10 @@ export async function GET(req: NextRequest) {
       upstreamHeaders['Referer'] = 'https://ssstik.io/';
     } else if (targetUrl.includes('tiktok.com') || targetUrl.includes('tikwm.com')) {
       upstreamHeaders['Referer'] = 'https://www.tiktok.com/';
+    } else if (targetUrl.includes('twimg.com') || targetUrl.includes('twitter.com') || targetUrl.includes('x.com')) {
+      upstreamHeaders['Referer'] = 'https://x.com/';
+    } else if (targetUrl.includes('cdninstagram.com') || targetUrl.includes('fbcdn.net')) {
+      upstreamHeaders['Referer'] = 'https://www.instagram.com/';
     } else if (targetUrl.includes('capcut.com')) {
       upstreamHeaders['Referer'] = 'https://www.capcut.com/';
     } else if (targetUrl.includes('googlevideo.com') || targetUrl.includes('youtube.com')) {
@@ -48,13 +52,12 @@ export async function GET(req: NextRequest) {
     let contentType = upstreamContentType;
     if (!contentType || contentType === 'application/octet-stream') {
       if (targetUrl.includes('.mp3')) contentType = 'audio/mpeg';
-      else if (targetUrl.includes('.mp4') || targetUrl.includes('tiktok') || targetUrl.includes('tikwm') || targetUrl.includes('muscdn')) contentType = 'video/mp4';
+      else if (targetUrl.includes('.mp4') || targetUrl.includes('twimg.com') || targetUrl.includes('tiktok') || targetUrl.includes('tikwm') || targetUrl.includes('muscdn')) contentType = 'video/mp4';
       else if (targetUrl.includes('saavncdn')) contentType = 'audio/mp4';
       else if (targetUrl.includes('googlevideo.com')) contentType = 'video/webm';
       else contentType = 'video/mp4';
     }
-    // Force video/mp4 for TikTok CDN regardless of what upstream says
-    if (targetUrl.includes('tiktok') || targetUrl.includes('tikwm') || targetUrl.includes('muscdn')) {
+    if (targetUrl.includes('tiktok') || targetUrl.includes('tikwm') || targetUrl.includes('muscdn') || targetUrl.includes('twimg.com')) {
       contentType = 'video/mp4';
     }
 

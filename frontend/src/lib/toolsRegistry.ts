@@ -22,6 +22,7 @@ import {
   Film,
   Download,
   Sparkles,
+  Smartphone,
 } from 'lucide-react';
 import { ToolCategory } from '@/store/useAppStore';
 
@@ -314,6 +315,14 @@ export const SLUG_ALIASES: Record<string, string> = {
   'multi-downloader': 'media-downloader',
   'media': 'media-downloader',
 
+  // APK Downloader Aliases -> apk-downloader
+  'apk-downloader': 'apk-downloader',
+  'download-apk': 'apk-downloader',
+  'unduh-apk': 'apk-downloader',
+  'apk': 'apk-downloader',
+  'app': 'apk-downloader',
+  'android-apk': 'apk-downloader',
+
   // WhatsApp Status HD Aliases -> wa-status-hd
   'wa-status-hd': 'wa-status-hd',
   'status-wa': 'wa-status-hd',
@@ -381,6 +390,20 @@ export const SLUG_ALIASES: Record<string, string> = {
   'design-prompt': 'web-to-design-prompt-md',
 };
 
+export const standaloneTools: ToolItem[] = [
+  {
+    id: 'apk-downloader',
+    title: 'Download Aplikasi APK (Android)',
+    desc: 'Unduh paket installer APK resmi UtilityHub untuk Android & panduan instalasi instan PWA.',
+    category: 'downloader',
+    badge: 'APK & PWA RESMI',
+    icon: Smartphone,
+    iconColor: 'text-emerald-500',
+    iconBg: 'bg-emerald-500/10',
+    isNew: true,
+  },
+];
+
 /**
  * Safe, single-source-of-truth tool resolver with alias normalization
  */
@@ -388,13 +411,14 @@ export const resolveToolBySlug = (rawSlug: string): ToolItem | undefined => {
   if (!rawSlug) return undefined;
   try {
     const normalized = decodeURIComponent(rawSlug).toLowerCase().trim();
+    const allTools = [...toolsCatalog, ...standaloneTools];
     // 1. Direct match
-    const directMatch = toolsCatalog.find((t) => t.id === normalized);
+    const directMatch = allTools.find((t) => t.id === normalized);
     if (directMatch) return directMatch;
     // 2. Alias match
     const aliasId = SLUG_ALIASES[normalized];
     if (aliasId) {
-      return toolsCatalog.find((t) => t.id === aliasId);
+      return allTools.find((t) => t.id === aliasId);
     }
   } catch {}
   return undefined;

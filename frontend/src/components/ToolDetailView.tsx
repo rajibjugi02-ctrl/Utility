@@ -10,6 +10,7 @@ import { i18n } from '@/utils/i18n';
 // 6 Core Platform Downloader & Movie Finder
 import { MediaDownloaderHub } from './tools/MediaDownloaderHub';
 import { MovieRecommendationFinder } from './tools/MovieRecommendationFinder';
+import { ApkDownloaderTool } from './tools/ApkDownloaderTool';
 
 // Creator & Video Tools
 import { TikTokStalkerTool } from './tools/TikTokStalkerTool';
@@ -81,6 +82,8 @@ export const ToolDetailView: React.FC = () => {
       // Primary Unified Media Downloader & Movie Finder
       case 'media-downloader':
         return <MediaDownloaderHub />;
+      case 'apk-downloader':
+        return <ApkDownloaderTool />;
       case 'movie-finder':
         return <MovieRecommendationFinder />;
 

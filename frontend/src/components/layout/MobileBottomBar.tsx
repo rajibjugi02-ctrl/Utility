@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Compass, History, Settings, Sun, Moon } from 'lucide-react';
+import { Compass, History, Settings, Sun, Moon, Smartphone } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { i18n } from '@/utils/i18n';
+import { AppDownloadModal } from './AppDownloadModal';
 
 export const MobileBottomBar: React.FC = () => {
   const pathname = usePathname();
@@ -22,6 +23,7 @@ export const MobileBottomBar: React.FC = () => {
   } = useAppStore();
 
   const [mounted, setMounted] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -89,6 +91,16 @@ export const MobileBottomBar: React.FC = () => {
 
         <div className="h-6 w-px bg-[var(--neo-border)] mx-1" />
 
+        {/* Mobile APK Download Button */}
+        <button
+          type="button"
+          onClick={() => setShowDownloadModal(true)}
+          className="neo-btn p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 cursor-pointer"
+          title="Unduh APK"
+        >
+          <Smartphone className="w-4 h-4" />
+        </button>
+
         {/* Mobile Quick Theme Toggle */}
         <button
           type="button"
@@ -103,6 +115,11 @@ export const MobileBottomBar: React.FC = () => {
           )}
         </button>
       </div>
+
+      <AppDownloadModal
+        isOpen={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+      />
     </nav>
   );
 };

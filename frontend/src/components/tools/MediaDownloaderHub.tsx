@@ -375,11 +375,18 @@ export const MediaDownloaderHub: React.FC = () => {
   // 2. TAMPILAN PANEL KERJA KHUSUS PLATFORM YANG DIPILIH
   const isSlideshow =
     result?.mediaType === 'slideshow' ||
+    result?.mediaType === 'image' ||
     (Array.isArray(result?.images) && result.images.length > 0) ||
     (Array.isArray(result?.slides) && result.slides.length > 0);
 
   const slideImages: string[] = isSlideshow
-    ? result.images || result.slides?.map((s: any) => (typeof s === 'string' ? s : s.url)) || []
+    ? (Array.isArray(result.images) && result.images.length > 0)
+      ? result.images
+      : (Array.isArray(result.slides) && result.slides.length > 0)
+      ? result.slides.map((s: any) => (typeof s === 'string' ? s : s.url))
+      : result.thumbnail
+      ? [result.thumbnail]
+      : []
     : [];
 
   return (
@@ -595,24 +602,38 @@ export const MediaDownloaderHub: React.FC = () => {
                 activeVideoRaw.includes('tiktok.com') ||
                 activeVideoRaw.includes('tikwm.com') ||
                 activeVideoRaw.includes('muscdn.com') ||
-                activeVideoRaw.includes('tiktokcdn.com')
+                activeVideoRaw.includes('tiktokcdn.com') ||
+                activeVideoRaw.includes('twimg.com') ||
+                activeVideoRaw.includes('twitter.com') ||
+                activeVideoRaw.includes('x.com') ||
+                activeVideoRaw.includes('cdninstagram.com') ||
+                activeVideoRaw.includes('fbcdn.net')
               ));
               const activeVideoUrl = needsProxy && activeVideoRaw
                 ? `/api/proxy-media?url=${encodeURIComponent(activeVideoRaw)}`
                 : activeVideoRaw;
               const hasEmbedPlayer = Boolean(result.embedPlayerUrl);
-              const isDirectMp4 = Boolean(activeVideoRaw && (
+              const isImageFile = Boolean(activeVideoRaw && (
+                activeVideoRaw.includes('.jpg') ||
+                activeVideoRaw.includes('.jpeg') ||
+                activeVideoRaw.includes('.png') ||
+                activeVideoRaw.includes('.webp') ||
+                activeVideoRaw.includes('pbs.twimg.com/media')
+              ));
+              const isDirectMp4 = !isImageFile && Boolean(activeVideoRaw && (
                 activeVideoRaw.includes('.mp4') ||
                 activeVideoRaw.includes('googlevideo') ||
-                activeVideoRaw.includes('cdn') ||
+                activeVideoRaw.includes('video.twimg.com') ||
                 activeVideoRaw.includes('tikcdn') ||
                 activeVideoRaw.includes('ssstik') ||
                 activeVideoRaw.includes('tikwm') ||
-                activeVideoRaw.includes('tiktok')
+                activeVideoRaw.includes('tiktok') ||
+                activeVideoRaw.includes('cdninstagram') ||
+                activeVideoRaw.includes('fbcdn')
               ));
               // YouTube embed support (nocookie iframe)
               const isYouTubeEmbed = Boolean(result.videoUrl && (result.videoUrl.includes('youtube-nocookie.com') || result.videoUrl.includes('youtube.com/embed')));
-              const isPortrait = result.aspectRatio === '9:16' || selectedPlatform.id === 'tiktok' || videoAspect === 'portrait';
+              const isPortrait = result.aspectRatio === '9:16' || selectedPlatform.id === 'tiktok' || (selectedPlatform.id === 'instagram' && !isSlideshow) || videoAspect === 'portrait';
 
               return (
                 <div className="space-y-4">
@@ -633,7 +654,6 @@ export const MediaDownloaderHub: React.FC = () => {
                           poster={result.thumbnail}
                           controls
                           playsInline
-                          crossOrigin="anonymous"
                           onLoadedMetadata={(e) => {
                             const v = e.currentTarget;
                             if (v.videoWidth && v.videoHeight) {
@@ -983,13 +1003,21 @@ export const MediaDownloaderHub: React.FC = () => {
                 fsRaw.includes('muscdn')
               );
               const fsSrc = fsNeedsProxy ? `/api/proxy-media?url=${encodeURIComponent(fsRaw)}` : fsRaw;
-              const fsCanPlay = Boolean(fsRaw && (
+              const fsIsImage = Boolean(fsRaw && (
+                fsRaw.includes('.jpg') ||
+                fsRaw.includes('.jpeg') ||
+                fsRaw.includes('.png') ||
+                fsRaw.includes('.webp') ||
+                fsRaw.includes('pbs.twimg.com/media')
+              ));
+              const fsCanPlay = !fsIsImage && Boolean(fsRaw && (
                 fsRaw.includes('.mp4') ||
                 fsRaw.includes('tikcdn') ||
                 fsRaw.includes('ssstik') ||
                 fsRaw.includes('tikwm') ||
                 fsRaw.includes('tiktok') ||
-                fsRaw.includes('googlevideo')
+                fsRaw.includes('googlevideo') ||
+                fsRaw.includes('video.twimg.com')
               ));
               const fsIsYt = Boolean(result.videoUrl && (result.videoUrl.includes('youtube-nocookie.com') || result.videoUrl.includes('youtube.com/embed')));
 
@@ -1003,6 +1031,14 @@ export const MediaDownloaderHub: React.FC = () => {
                 />
               );
 
+              if (fsIsImage || result.mediaType === 'image') return (
+                <img
+                  src={fsSrc || result.thumbnail}
+                  alt={result.title || 'Preview'}
+                  className="w-full h-full object-contain rounded-2xl shadow-2xl bg-black"
+                />
+              );
+
               if (fsCanPlay) return (
                 <video
                   src={fsSrc}
@@ -1010,7 +1046,6 @@ export const MediaDownloaderHub: React.FC = () => {
                   controls
                   autoPlay
                   playsInline
-                  crossOrigin="anonymous"
                   className="w-full h-full object-contain rounded-2xl shadow-2xl bg-black"
                 />
               );

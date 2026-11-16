@@ -4,9 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Compass, History, Settings, Sun, Moon } from 'lucide-react';
+import { Compass, History, Settings, Sun, Moon, Smartphone } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { i18n } from '@/utils/i18n';
+import { AppDownloadModal } from './AppDownloadModal';
 
 export const FloatingNavbar: React.FC = () => {
   const pathname = usePathname();
@@ -24,6 +25,7 @@ export const FloatingNavbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [visible, setVisible] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -109,11 +111,10 @@ export const FloatingNavbar: React.FC = () => {
                 key={item.id}
                 href={item.href}
                 onClick={() => handleNavClick(item.id)}
-                className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer select-none flex items-center gap-1.5 ${
-                  isActive
+                className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer select-none flex items-center gap-1.5 ${isActive
                     ? 'text-[var(--neo-accent-text)]'
                     : 'text-[var(--neo-text-muted)] hover:text-[var(--neo-text)]'
-                }`}
+                  }`}
               >
                 <Icon className="w-3.5 h-3.5 relative z-10" />
                 <span className="relative z-10">{item.label}</span>
@@ -132,6 +133,19 @@ export const FloatingNavbar: React.FC = () => {
 
         <div className="h-4 w-px bg-[var(--neo-border)] mx-1 hidden md:block" />
 
+        {/* Unduh APK Quick Button */}
+        <button
+          type="button"
+          onClick={() => setShowDownloadModal(true)}
+          className="neo-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer shadow-sm"
+          title="Unduh Aplikasi APK / Pasang PWA"
+        >
+          <Smartphone className="w-3.5 h-3.5" />
+          <span>Unduh APK</span>
+        </button>
+
+        <div className="h-4 w-px bg-[var(--neo-border)] mx-1 hidden md:block" />
+
         {/* Quick Theme Toggle */}
         <button
           type="button"
@@ -146,6 +160,12 @@ export const FloatingNavbar: React.FC = () => {
           )}
         </button>
       </motion.nav>
+
+      {/* App Download Modal */}
+      <AppDownloadModal
+        isOpen={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+      />
     </header>
   );
 };

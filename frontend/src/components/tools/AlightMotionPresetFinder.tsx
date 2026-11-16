@@ -172,23 +172,21 @@ export const AlightMotionPresetFinder: React.FC = () => {
                   return (
                     <div
                       key={idx}
-                      className={`p-4 rounded-2xl border-2 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-sm ${
-                        is5Mb
-                          ? 'border-emerald-500/50 bg-emerald-500/5 hover:border-emerald-500'
-                          : isXml
+                      className={`p-4 rounded-2xl border-2 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-sm ${is5Mb
+                        ? 'border-emerald-500/50 bg-emerald-500/5 hover:border-emerald-500'
+                        : isXml
                           ? 'border-indigo-500/50 bg-indigo-500/5 hover:border-indigo-500'
                           : 'border-amber-500/50 bg-amber-500/5 hover:border-amber-500'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-start gap-3 overflow-hidden">
                         <div
-                          className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center shrink-0 mt-0.5 shadow-sm ${
-                            is5Mb
-                              ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/60'
-                              : isXml
+                          className={`w-9 h-9 rounded-xl border-2 flex items-center justify-center shrink-0 mt-0.5 shadow-sm ${is5Mb
+                            ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/60'
+                            : isXml
                               ? 'bg-indigo-500/20 text-indigo-500 border-indigo-500/60'
                               : 'bg-amber-500/20 text-amber-500 border-amber-500/60'
-                          }`}
+                            }`}
                         >
                           {is5Mb ? <Link2 className="w-4 h-4" /> : <FileCode className="w-4 h-4" />}
                         </div>
@@ -196,13 +194,12 @@ export const AlightMotionPresetFinder: React.FC = () => {
                         <div className="truncate space-y-1">
                           <div className="flex flex-wrap items-center gap-1.5">
                             <span
-                              className={`neo-badge text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                is5Mb
-                                  ? 'bg-emerald-500 text-white border-emerald-600'
-                                  : isXml
+                              className={`neo-badge text-[10px] font-bold px-2 py-0.5 rounded-full ${is5Mb
+                                ? 'bg-emerald-500 text-white border-emerald-600'
+                                : isXml
                                   ? 'bg-indigo-500 text-white border-indigo-600'
                                   : 'bg-amber-500 text-white border-amber-600'
-                              }`}
+                                }`}
                             >
                               {preset.service || (is5Mb ? 'Preset Direct <5MB (Alight Motion)' : 'Preset XML')}
                             </span>
@@ -246,16 +243,15 @@ export const AlightMotionPresetFinder: React.FC = () => {
                           href={targetUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`neo-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm text-white ${
-                            is5Mb
-                              ? 'bg-emerald-600 hover:bg-emerald-700'
-                              : isXml
-                              ? 'bg-indigo-600 hover:bg-indigo-700'
-                              : 'bg-amber-600 hover:bg-amber-700'
-                          }`}
+                          className={`neo-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm text-white transition-transform active:scale-95 ${is5Mb
+                            ? 'bg-emerald-600 hover:bg-emerald-700 border-2 border-black'
+                            : isXml
+                              ? 'bg-indigo-600 hover:bg-indigo-700 border-2 border-black'
+                              : 'bg-amber-600 hover:bg-amber-700 border-2 border-black'
+                            }`}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                          <span>Import ke Alight Motion ↗</span>
+                          <span>{is5Mb ? '📥 Import Package / Buka Preset Alight Motion ↗' : isXml ? '📥 Buka & Unduh File XML ↗' : 'Buka Tautan Preset ↗'}</span>
                         </a>
                       </div>
                     </div>
