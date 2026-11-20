@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/store/useAppStore';
 import { Navbar } from '@/components/Navbar';
 import { HeroSection } from '@/components/HeroSection';
 import { SmartClipboardBar } from '@/components/home/SmartClipboardBar';
 import { ToolsGrid } from '@/components/ToolsGrid';
-import { ToolDetailView } from '@/components/ToolDetailView';
-import { HistoryView } from '@/components/HistoryView';
-import { SettingsView } from '@/components/SettingsView';
 import { RealTimeProgress } from '@/components/RealTimeProgress';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
+
+const ToolDetailView = dynamic(() => import('@/components/ToolDetailView').then(m => m.ToolDetailView), { ssr: false });
+const HistoryView = dynamic(() => import('@/components/HistoryView').then(m => m.HistoryView), { ssr: false });
+const SettingsView = dynamic(() => import('@/components/SettingsView').then(m => m.SettingsView), { ssr: false });
 
 export default function HomePage() {
   const { activeTab, setActiveTab, activeToolSlug, themeMode, textSize, bgStyle, fontFamily } = useAppStore();

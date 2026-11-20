@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
 import { Navbar } from '@/components/Navbar';
-import { ToolDetailView } from '@/components/ToolDetailView';
 import { AnimatedBackground } from '@/components/layout/AnimatedBackground';
 import { resolveToolBySlug } from '@/lib/toolsRegistry';
 import { Sparkles, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+
+const ToolDetailView = dynamic(() => import('@/components/ToolDetailView').then(m => m.ToolDetailView), { ssr: false });
 
 export default function ToolPage() {
   const params = useParams();

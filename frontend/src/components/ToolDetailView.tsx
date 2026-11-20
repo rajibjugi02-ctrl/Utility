@@ -1,49 +1,59 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { toolsCatalog, resolveToolBySlug } from '@/lib/toolsRegistry';
 import { i18n } from '@/utils/i18n';
 
+const ToolLoadingFallback = () => (
+  <div className="w-full min-h-[320px] p-8 rounded-3xl bg-[var(--neo-surface)] border-2 border-[var(--neo-border)] shadow-neo flex flex-col items-center justify-center gap-3 animate-pulse">
+    <div className="w-10 h-10 rounded-2xl bg-[var(--neo-accent)] text-[var(--neo-accent-text)] border-2 border-black flex items-center justify-center">
+      <Sparkles className="w-5 h-5 animate-spin" />
+    </div>
+    <span className="text-xs font-mono font-bold text-[var(--neo-text)]">Memuat Alat...</span>
+  </div>
+);
+
 // 6 Core Platform Downloader & Movie Finder
-import { MediaDownloaderHub } from './tools/MediaDownloaderHub';
-import { MovieRecommendationFinder } from './tools/MovieRecommendationFinder';
-import { ApkDownloaderTool } from './tools/ApkDownloaderTool';
+const MediaDownloaderHub = dynamic(() => import('./tools/MediaDownloaderHub').then(m => m.MediaDownloaderHub), { ssr: false, loading: ToolLoadingFallback });
+const MovieRecommendationFinder = dynamic(() => import('./tools/MovieRecommendationFinder').then(m => m.MovieRecommendationFinder), { ssr: false, loading: ToolLoadingFallback });
+const ApkDownloaderTool = dynamic(() => import('./tools/ApkDownloaderTool').then(m => m.ApkDownloaderTool), { ssr: false, loading: ToolLoadingFallback });
 
 // Creator & Video Tools
-import { TikTokStalkerTool } from './tools/TikTokStalkerTool';
-import { AlightMotionPresetFinder } from './tools/AlightMotionPresetFinder';
-import { AnimeRecommendationFinder } from './tools/AnimeRecommendationFinder';
-import { AutoVectorXmlTool } from './tools/AutoVectorXmlTool';
-import { SafeZonePreviewer } from './tools/SafeZonePreviewer';
-import VideoGifStickerMaker from './tools/VideoGifStickerMaker';
-import VideoAudioMuteReplacer from './tools/VideoAudioMuteReplacer';
+const TikTokStalkerTool = dynamic(() => import('./tools/TikTokStalkerTool').then(m => m.TikTokStalkerTool), { ssr: false, loading: ToolLoadingFallback });
+const AlightMotionPresetFinder = dynamic(() => import('./tools/AlightMotionPresetFinder').then(m => m.AlightMotionPresetFinder), { ssr: false, loading: ToolLoadingFallback });
+const AnimeRecommendationFinder = dynamic(() => import('./tools/AnimeRecommendationFinder').then(m => m.AnimeRecommendationFinder), { ssr: false, loading: ToolLoadingFallback });
+const AutoVectorXmlTool = dynamic(() => import('./tools/AutoVectorXmlTool').then(m => m.AutoVectorXmlTool), { ssr: false, loading: ToolLoadingFallback });
+const SafeZonePreviewer = dynamic(() => import('./tools/SafeZonePreviewer').then(m => m.SafeZonePreviewer), { ssr: false, loading: ToolLoadingFallback });
+const VideoGifStickerMaker = dynamic(() => import('./tools/VideoGifStickerMaker'), { ssr: false, loading: ToolLoadingFallback });
+const VideoAudioMuteReplacer = dynamic(() => import('./tools/VideoAudioMuteReplacer'), { ssr: false, loading: ToolLoadingFallback });
 
 // Audio Tools
-import { VoiceChangerStudio } from './tools/VoiceChangerStudio';
-import { AudioSlowedReverb } from './tools/AudioSlowedReverb';
-import { AudioCutterSplitter } from './tools/AudioCutterSplitter';
+const VoiceChangerStudio = dynamic(() => import('./tools/VoiceChangerStudio').then(m => m.VoiceChangerStudio), { ssr: false, loading: ToolLoadingFallback });
+const AudioSlowedReverb = dynamic(() => import('./tools/AudioSlowedReverb').then(m => m.AudioSlowedReverb), { ssr: false, loading: ToolLoadingFallback });
+const AudioCutterSplitter = dynamic(() => import('./tools/AudioCutterSplitter').then(m => m.AudioCutterSplitter), { ssr: false, loading: ToolLoadingFallback });
 
 // Docs Tools
-import { PdfStudio } from './tools/PdfStudio';
-import { WebToPdf } from './tools/WebToPdf';
-import { OcrScanner } from './tools/OcrScanner';
+const PdfStudio = dynamic(() => import('./tools/PdfStudio').then(m => m.PdfStudio), { ssr: false, loading: ToolLoadingFallback });
+const WebToPdf = dynamic(() => import('./tools/WebToPdf').then(m => m.WebToPdf), { ssr: false, loading: ToolLoadingFallback });
+const OcrScanner = dynamic(() => import('./tools/OcrScanner').then(m => m.OcrScanner), { ssr: false, loading: ToolLoadingFallback });
 
 // Images Tools
-import { RemoveBackgroundTool } from './tools/RemoveBackgroundTool';
-import { PhotoUpscalerTool } from './tools/PhotoUpscalerTool';
-import { KoreanPhotoboothStrip } from './tools/KoreanPhotoboothStrip';
-import CamScannerEnhancer from './tools/CamScannerEnhancer';
-import { TargetSizeCompressor } from './tools/TargetSizeCompressor';
-import { ImagePaletteExtractor } from './tools/ImagePaletteExtractor';
-import { IgGridSplitter } from './tools/IgGridSplitter';
-import { ImageConverter } from './tools/ImageConverter';
+const RemoveBackgroundTool = dynamic(() => import('./tools/RemoveBackgroundTool').then(m => m.RemoveBackgroundTool), { ssr: false, loading: ToolLoadingFallback });
+const PhotoUpscalerTool = dynamic(() => import('./tools/PhotoUpscalerTool').then(m => m.PhotoUpscalerTool), { ssr: false, loading: ToolLoadingFallback });
+const KoreanPhotoboothStrip = dynamic(() => import('./tools/KoreanPhotoboothStrip').then(m => m.KoreanPhotoboothStrip), { ssr: false, loading: ToolLoadingFallback });
+const CamScannerEnhancer = dynamic(() => import('./tools/CamScannerEnhancer'), { ssr: false, loading: ToolLoadingFallback });
+const TargetSizeCompressor = dynamic(() => import('./tools/TargetSizeCompressor').then(m => m.TargetSizeCompressor), { ssr: false, loading: ToolLoadingFallback });
+const ImagePaletteExtractor = dynamic(() => import('./tools/ImagePaletteExtractor').then(m => m.ImagePaletteExtractor), { ssr: false, loading: ToolLoadingFallback });
+const IgGridSplitter = dynamic(() => import('./tools/IgGridSplitter').then(m => m.IgGridSplitter), { ssr: false, loading: ToolLoadingFallback });
+const ImageConverter = dynamic(() => import('./tools/ImageConverter').then(m => m.ImageConverter), { ssr: false, loading: ToolLoadingFallback });
 
 // Dev Tools
-import { WebToDesignPromptMd } from './tools/WebToDesignPromptMd';
-import { QrCodeStudio } from './tools/QrCodeStudio';
+const WebToDesignPromptMd = dynamic(() => import('./tools/WebToDesignPromptMd').then(m => m.WebToDesignPromptMd), { ssr: false, loading: ToolLoadingFallback });
+const QrCodeStudio = dynamic(() => import('./tools/QrCodeStudio').then(m => m.QrCodeStudio), { ssr: false, loading: ToolLoadingFallback });
 
 export const ToolDetailView: React.FC = () => {
   const router = useRouter();
