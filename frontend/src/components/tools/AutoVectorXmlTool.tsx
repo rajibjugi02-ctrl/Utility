@@ -49,7 +49,7 @@ interface Point {
 }
 
 type CanvasRatio = '1:1' | '9:16' | '16:9';
-type QualityPreset = 'light' | 'standard' | 'high';
+type QualityPreset = 'ultra' | 'standard';
 
 const CANVAS_PRESETS: Record<CanvasRatio, { width: number; height: number; label: string; desc: string }> = {
   '1:1': { width: 1080, height: 1080, label: '1:1', desc: '1080×1080 (Square)' },
@@ -58,9 +58,22 @@ const CANVAS_PRESETS: Record<CanvasRatio, { width: number; height: number; label
 };
 
 const QUALITY_CONFIGS: Record<QualityPreset, { maxLayers: number; colors: number; pathOmit: number; minRatio: number; label: string; desc: string }> = {
-  light: { maxLayers: 100, colors: 8, pathOmit: 4, minRatio: 0.03, label: 'Ringan (~80)', desc: 'Ukuran file paling kecil, ringan untuk HP spek menengah' },
-  standard: { maxLayers: 220, colors: 16, pathOmit: 3, minRatio: 0.015, label: 'Standar (~180)', desc: 'Keseimbangan terbaik antara detail dan performa' },
-  high: { maxLayers: 380, colors: 32, pathOmit: 2, minRatio: 0.005, label: 'Detail (~350)', desc: 'Presisi tinggi dengan ratusan layer terpisah (Shape_1 .. Shape_351)' },
+  ultra: {
+    maxLayers: 380,
+    colors: 24,
+    pathOmit: 2,
+    minRatio: 0.005,
+    label: 'Ultra Tajam (VTracer Logo & Teks Detail)',
+    desc: 'Mesin VTracer Rust tingkat profesional — kurva bulat sempurna, teks melingkar dan lambang Garuda tajam tanpa blur.',
+  },
+  standard: {
+    maxLayers: 160,
+    colors: 14,
+    pathOmit: 4,
+    minRatio: 0.02,
+    label: 'Standar (Cepat & Ringan)',
+    desc: 'Tracing lebih cepat, jumlah layer lebih ringkas untuk ilustrasi umum.',
+  },
 };
 
 function escapeXmlAttr(str: string): string {
@@ -241,8 +254,8 @@ function normalizePathToAlightMotion(
       const rawPoints: Point[] = [];
 
       if (Number.isFinite(subPathLen) && subPathLen > 0) {
-        // Adaptive sampling based on curve circumference: Math.max(16, Math.min(200, Math.ceil(subPathLen / 3.5)))
-        const numSteps = Math.max(16, Math.min(200, Math.ceil(subPathLen / 3.5)));
+        // High-density adaptive sampling for ultra-sharp curves: Math.max(20, Math.min(240, Math.ceil(subPathLen / 2.2)))
+        const numSteps = Math.max(20, Math.min(240, Math.ceil(subPathLen / 2.2)));
         for (let i = 0; i <= numSteps; i++) {
           const len = (i / numSteps) * subPathLen;
           const pt = pathEl.getPointAtLength(len);
@@ -279,8 +292,8 @@ function normalizePathToAlightMotion(
 
       if (rawPoints.length < 3) continue;
 
-      // Douglas-Peucker point reduction with ultra-fine tolerance (epsilon = 0.6) for smooth curves
-      const simplified = douglasPeucker(rawPoints, 0.6);
+      // Douglas-Peucker point reduction with ultra-fine tolerance (epsilon = 0.35) for perfectly round circles and smooth curves
+      const simplified = douglasPeucker(rawPoints, 0.35);
       const finalPoints = simplified.length >= 3 ? simplified : rawPoints;
 
       // Update global bounding box across all sub-paths
@@ -352,7 +365,7 @@ export const AutoVectorXmlTool: React.FC = () => {
   const [sourceType, setSourceType] = useState<'svg' | 'raster' | null>(null);
   const [fileName, setFileName] = useState<string>('vector-project');
   const [canvasRatio, setCanvasRatio] = useState<CanvasRatio>('1:1');
-  const [qualityPreset, setQualityPreset] = useState<QualityPreset>('standard');
+  const [qualityPreset, setQualityPreset] = useState<QualityPreset>('ultra');
   const [ignoreWhiteBackground, setIgnoreWhiteBackground] = useState<boolean>(true);
 
   const [shapes, setShapes] = useState<AlightPathShape[]>([]);
@@ -583,9 +596,30 @@ ${shapesXml}
     setXmlOutput(xml);
   }, [svgRawString, convertSvgToAlightShapes, fileName, canvasRatio]);
 
-  // Traces raster image to SVG using imagetracerjs
+  // Traces raster image to SVG: Prioritizes Ultra-Sharp VTracer Rust backend with high-res client fallback
   const traceImageToSvg = async (file: File, preset: QualityPreset) => {
     const config = QUALITY_CONFIGS[preset];
+
+    // 1. Try VTracer Rust Backend for ultra-sharp vectorization (no downscaling below 1024px)
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/vectorize', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.svg && data.svg.includes('<svg')) {
+          return data.svg;
+        }
+      }
+    } catch (vtracerErr) {
+      console.warn('VTracer backend fetch failed, using high-res client fallback:', vtracerErr);
+    }
+
+    // 2. High-Res Client-Side Fallback (ImageTracer with ultra-sharp pre-rendering)
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = async (e) => {
@@ -593,10 +627,10 @@ ${shapesXml}
         const img = new Image();
         img.onload = async () => {
           try {
-            // Resize canvas for tracing: max 640px for high, 512px for standard
-            const maxDim = preset === 'high' ? 640 : 512;
-            let tw = img.naturalWidth;
-            let th = img.naturalHeight;
+            // Preserve full resolution (never scale down below 1024px; clamp max to 1600px)
+            let tw = img.naturalWidth || 1024;
+            let th = img.naturalHeight || 1024;
+            const maxDim = 1600;
             if (tw > maxDim || th > maxDim) {
               if (tw > th) {
                 th = Math.round((th * maxDim) / tw);
@@ -621,10 +655,10 @@ ${shapesXml}
 
             const svgString = ImageTracer.imagedataToSVG(imgData, {
               corsenabled: false,
-              ltres: 0.5,
-              qtres: 0.5,
+              ltres: 0.1,
+              qtres: 0.1,
               pathomit: config.pathOmit,
-              rightangleenhance: false,
+              rightangleenhance: true,
               colorsampling: 2,
               numberofcolors: config.colors,
               mincolorratio: config.minRatio,
@@ -1002,7 +1036,7 @@ ${shapesXml}
                 </span>
               </div>
               <div className="space-y-2">
-                {(['light', 'standard', 'high'] as QualityPreset[]).map((preset) => {
+                {(['ultra', 'standard'] as QualityPreset[]).map((preset) => {
                   const cfg = QUALITY_CONFIGS[preset];
                   const active = qualityPreset === preset;
                   return (

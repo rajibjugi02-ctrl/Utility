@@ -33,7 +33,7 @@ export const RemoveBackgroundTool: React.FC = () => {
       try {
         // Load dynamically from CDN with webpackIgnore so Next.js webpack minifier does not trip over onnxruntime-web import.meta
         const imgly = typeof window !== 'undefined'
-          ? await import(/* webpackIgnore: true */ 'https://esm.sh/@imgly/background-removal@1.7.0')
+          ? await (new Function('url', 'return import(url)'))('https://esm.sh/@imgly/background-removal@1.7.0')
           : null;
         if (!imgly) throw new Error('Client-only module');
         const removeBgFn = imgly.removeBackground || (imgly as any).default;

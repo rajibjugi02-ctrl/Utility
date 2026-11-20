@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  experimental: {
+    serverComponentsExternalPackages: ['@neplex/vectorizer'],
+  },
   eslint: {
     // Mematikan error linting saat proses build Vercel
     ignoreDuringBuilds: true,
