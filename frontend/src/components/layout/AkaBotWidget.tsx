@@ -73,9 +73,11 @@ export const AkaBotWidget: React.FC = () => {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       const botReply =
-        data.reply || 'Maaf, AkaBot sedang kesulitan memproses pesan ini. Coba tanyakan hal lain ya!';
+        data.reply ||
+        data.message ||
+        'Halo! Aku AkaBot 🌸. Ada yang bisa aku bantu seputar download video atau editing di UtilityHub?';
 
       const akaMsg: ChatMessage = {
         id: `aka-${Date.now()}`,
