@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
   X,
@@ -35,6 +36,11 @@ export const MovieDetailView: React.FC<MovieDetailViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [activeLightbox, setActiveLightbox] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -456,27 +462,43 @@ export const MovieDetailView: React.FC<MovieDetailViewProps> = ({
         </button>
       </div>
 
-      {/* Lightbox Modal for Stills */}
-      {activeLightbox && (
+      {/* Lightbox Modal for Stills rendered via Portal to document.body */}
+      {mounted && activeLightbox && typeof document !== 'undefined' && createPortal(
         <div
           role="dialog"
           aria-modal="true"
-          onClick={() => setActiveLightbox(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm cursor-zoom-out"
+          className="fixed inset-0 z-[999999] flex items-center justify-center p-4 animate-in fade-in duration-200"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0 }}
         >
-          <div className="relative max-w-4xl w-full neo-card rounded-2xl overflow-hidden border-3 border-black shadow-neo">
+          {/* Full-bleed solid dark backdrop extending -100px past every edge to eliminate any blur seams */}
+          <div
+            onClick={() => setActiveLightbox(null)}
+            className="absolute bg-black/92 backdrop-blur-xl cursor-zoom-out"
+            style={{
+              position: 'absolute',
+              top: '-100px',
+              left: '-100px',
+              right: '-100px',
+              bottom: '-100px',
+              width: 'calc(100vw + 200px)',
+              height: 'calc(100vh + 200px)',
+            }}
+          />
+
+          <div className="relative z-10 max-w-4xl w-full neo-card rounded-2xl overflow-hidden border-3 border-black shadow-neo">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={activeLightbox} alt="Movie Still Enlarged" className="w-full h-auto object-cover" />
             <button
               type="button"
               onClick={() => setActiveLightbox(null)}
-              className="absolute top-3 right-3 p-2 rounded-full bg-black/70 text-white hover:bg-black border border-white/20"
+              className="absolute top-3 right-3 p-2 rounded-full bg-black/70 text-white hover:bg-black border border-white/20 cursor-pointer"
               aria-label="Tutup Preview"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

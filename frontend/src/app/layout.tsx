@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { AkaBotWidget } from '@/components/layout/AkaBotWidget';
 
 export const metadata: Metadata = {
   title: 'UtilityHub | Soft Neo-Brutalism Modern Utility Studio',
@@ -31,6 +32,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-[var(--neo-bg)] text-[var(--neo-text)] antialiased transition-colors duration-200" suppressHydrationWarning>
         {children}
+        <AkaBotWidget />
       </body>
     </html>
   );

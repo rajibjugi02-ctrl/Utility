@@ -96,7 +96,7 @@ function repairMultilineUrls(text: string): string {
       const isLonePunct = /^[-_~*•|#]+$/.test(line);
       const curIsContinuation =
         !isLonePunct &&
-        line.length >= 3 &&
+        line.length >= 1 &&
         /^[a-zA-Z0-9_\-\/?=&%#.~]+$/.test(line) &&
         /[a-zA-Z0-9]/.test(line) &&
         !/^(https?:\/\/|xml|5mb|saluran|wa|preset|link|pw|pass|t\.me|bit\.ly|s\.id|campsite|linktr\.ee)/i.test(line);
@@ -132,7 +132,7 @@ async function resolveShortLink(shortUrl: string): Promise<string> {
         signal: AbortSignal.timeout(3000),
       });
       if (getRes.url && getRes.url !== shortUrl) return getRes.url;
-    } catch {}
+    } catch { }
   }
   return shortUrl;
 }
@@ -239,7 +239,7 @@ async function extractPresetsWithUnshorten(rawText: string, source: string = 'Ca
                   continue;
                 }
               }
-            } catch {}
+            } catch { }
           }
 
           results.push(classifyPreset(clean, source, resolved !== clean ? resolved : undefined));
@@ -250,7 +250,66 @@ async function extractPresetsWithUnshorten(rawText: string, source: string = 'Ca
     }
   }
 
+  // Detect & Deep-Scrape WhatsApp Channels (whatsapp.com/channel/... or wa.me/channel/...)
+  const waChannelRegex = /(?:https?:\/\/)?(?:chat\.whatsapp\.com|whatsapp\.com\/channel|wa\.me\/channel)\/[a-zA-Z0-9_\-]+/gi;
+  const waMatches = text.match(waChannelRegex);
+  if (waMatches) {
+    for (const rawWa of waMatches) {
+      const cleanWa = (rawWa.startsWith('http') ? rawWa : `https://${rawWa}`).replace(/[.,;:!?)\]}>"'\s]+$/, '');
+      try {
+        const channelPresets = await scrapeWhatsAppChannel(cleanWa);
+        channelPresets.forEach((cp) => {
+          if (!results.some((existing) => existing.url === cp.url)) {
+            results.push(cp);
+          }
+        });
+      } catch { }
+    }
+  }
+
   return results;
+}
+
+async function scrapeWhatsAppChannel(channelUrl: string): Promise<ExtractedPreset[]> {
+  const presets: ExtractedPreset[] = [];
+  try {
+    const res = await fetch(channelUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+      },
+      signal: AbortSignal.timeout(4000),
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      const html = await res.text();
+      // Extract any presets directly shared within the WhatsApp channel preview page
+      const found = extractPresets(html, 'Ditemukan di Saluran WhatsApp (Channel)');
+      found.forEach((p) => {
+        if (!presets.some((x) => x.url === p.url)) {
+          presets.push(p);
+        }
+      });
+    }
+  } catch { }
+
+  // Always make sure the WhatsApp channel itself is accessible as a resource
+  if (!presets.some((p) => p.url === channelUrl)) {
+    presets.push({
+      title: 'Saluran WhatsApp Kreator (Tempat Berbagi Preset)',
+      service: 'Saluran WhatsApp Kreator (Update Rutin)',
+      badgeType: 'hosting',
+      type: 'other',
+      url: channelUrl,
+      resolvedUrl: channelUrl,
+      source: 'Saluran WhatsApp Kreator',
+    });
+  }
+
+  return presets;
 }
 
 async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]> {
@@ -271,7 +330,7 @@ async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]
       if (headRes.url && headRes.url.includes('tiktok.com')) {
         canonicalUrl = headRes.url;
       }
-    } catch {}
+    } catch { }
   }
 
   const cleanTargetUrl = canonicalUrl.split('?')[0];
@@ -303,8 +362,8 @@ async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]
           const sourceLabel = c.author_pin
             ? 'Ditemukan di Komentar Disematkan (Pinned)'
             : isCreator
-            ? `Ditemukan di Komentar Kreator (@${c.user?.unique_id})`
-            : 'Ditemukan di Kolom Komentar';
+              ? `Ditemukan di Komentar Kreator (@${c.user?.unique_id})`
+              : 'Ditemukan di Kolom Komentar';
 
           const found = await extractPresetsWithUnshorten(c.text || '', sourceLabel);
           found.forEach((item) => {
@@ -324,7 +383,7 @@ async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]
             if (!aHasKw && bHasKw) return 1;
             return (b.reply_comment_total || 0) - (a.reply_comment_total || 0);
           })
-          .slice(0, 10);
+          .slice(0, 20);
 
         await Promise.allSettled(
           threadsToCheck.map(async (c: any) => {
@@ -336,7 +395,7 @@ async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
                     'Referer': 'https://www.tiktok.com/',
                   },
-                  signal: AbortSignal.timeout(3500),
+                  signal: AbortSignal.timeout(4500),
                 }
               );
               if (rRes.ok) {
@@ -348,21 +407,33 @@ async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]
                     const replyLabel = isRcCreator
                       ? `Ditemukan di Balasan Komentar Kreator (@${rc.user?.unique_id})`
                       : 'Ditemukan di Balasan Komentar';
-                    const foundInReply = await extractPresetsWithUnshorten(rc.text || '', replyLabel);
-                    foundInReply.forEach((item) => {
+
+                    // 1. Direct Presets (instant, 0ms, zero risk of abort)
+                    const directPresets = extractPresets(rc.text || '', replyLabel);
+                    directPresets.forEach((item) => {
                       if (!presets.some((p) => p.url === item.url)) {
                         presets.push(item);
                       }
                     });
+
+                    // 2. Shortlinks / WhatsApp channels (non-blocking)
+                    try {
+                      const unshortened = await extractPresetsWithUnshorten(rc.text || '', replyLabel);
+                      unshortened.forEach((item) => {
+                        if (!presets.some((p) => p.url === item.url)) {
+                          presets.push(item);
+                        }
+                      });
+                    } catch { }
                   }
                 }
               }
-            } catch {}
+            } catch { }
           })
         );
       }
     }
-  } catch {}
+  } catch { }
 
   // ENGINE 2: TikWM Comments Backup (if Engine 1 produced 0 presets)
   if (presets.length === 0) {
@@ -381,8 +452,8 @@ async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]
           const sourceLabel = c.is_pinned || c.author_pin
             ? 'Ditemukan di Komentar Disematkan (Pinned)'
             : c.is_author
-            ? `Ditemukan di Komentar Kreator`
-            : 'Ditemukan di Kolom Komentar';
+              ? `Ditemukan di Komentar Kreator`
+              : 'Ditemukan di Kolom Komentar';
           const found = await extractPresetsWithUnshorten(c.text || '', sourceLabel);
           found.forEach((item) => {
             if (!presets.some((p) => p.url === item.url)) {
@@ -391,7 +462,7 @@ async function scrapeTikTokComments(videoUrl: string): Promise<ExtractedPreset[]
           });
         }
       }
-    } catch {}
+    } catch { }
   }
 
   return presets;
@@ -557,7 +628,7 @@ async function extractSpotifyMetadata(spotifyUrl: string): Promise<{
         trackId,
       };
     }
-  } catch (e: any) {}
+  } catch (e: any) { }
 
   return null;
 }
@@ -627,7 +698,7 @@ async function resolveSaavnFullAudio(
         }
       }
     }
-  } catch (e: any) {}
+  } catch (e: any) { }
   return null;
 }
 
@@ -688,6 +759,24 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // DIRECT WHATSAPP CHANNEL PRESET EXTRACTOR
+    if (cleanUrl.includes('whatsapp.com/channel') || cleanUrl.includes('wa.me/channel') || cleanUrl.includes('chat.whatsapp.com')) {
+      const cleanWa = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+      const presets = await scrapeWhatsAppChannel(cleanWa);
+      return NextResponse.json({
+        success: true,
+        platform: 'alight',
+        data: {
+          mediaType: 'preset',
+          title: 'Saluran WhatsApp Kreator Preset',
+          author: 'WhatsApp Channel',
+          presets_found: presets.length > 0,
+          presets,
+          scrapedCaption: cleanWa,
+        },
+      });
+    }
+
     // =========================================================================
     // 1. TIKTOK (MULTI-ENGINE HIGH-SPEED DIRECT MP4 EXTRACTOR)
     // =========================================================================
@@ -706,7 +795,7 @@ export async function POST(req: NextRequest) {
           if (headRes.url && headRes.url.includes('tiktok.com')) {
             targetTikTokUrl = headRes.url;
           }
-        } catch {}
+        } catch { }
       }
 
       // Step 1: Parallel fetch from SSSTik (Direct MP4 Stream) and Official oEmbed (Accurate Metadata)
@@ -787,7 +876,7 @@ export async function POST(req: NextRequest) {
                   allPresets.push(item);
                 }
               });
-            } catch {}
+            } catch { }
           }
 
           return NextResponse.json({
@@ -894,7 +983,7 @@ export async function POST(req: NextRequest) {
                   allPresets.push(item);
                 }
               });
-            } catch {}
+            } catch { }
           }
 
           return NextResponse.json({
@@ -936,12 +1025,12 @@ export async function POST(req: NextRequest) {
           const thumbnail = info.thumbnail || '';
           const duration = info.duration || 15;
           const formats = Array.isArray(info.formats) ? info.formats : [];
-          
+
           const audioFmt = formats.find((f: any) => f.format_id === 'audio' || (f.acodec !== 'none' && f.vcodec === 'none')) ||
-                           formats.find((f: any) => f.url?.includes('audio') || f.ext === 'mp3');
+            formats.find((f: any) => f.url?.includes('audio') || f.ext === 'mp3');
           const audioUrl = audioFmt?.url || '';
           const hqFmt = formats.filter((f: any) => f.vcodec !== 'none' && (f.height >= 720 || f.width >= 720)).sort((a: any, b: any) => (b.height || 0) - (a.height || 0))[0] ||
-                        formats.filter((f: any) => f.vcodec !== 'none').sort((a: any, b: any) => (b.height || 0) - (a.height || 0))[0];
+            formats.filter((f: any) => f.vcodec !== 'none').sort((a: any, b: any) => (b.height || 0) - (a.height || 0))[0];
           const hqVideoUrl = hqFmt?.url || '';
           const cleanTitle = videoTitle.replace(/[^\w\s-]/g, '').trim().slice(0, 45) || 'tiktok_video';
 
@@ -1000,7 +1089,7 @@ export async function POST(req: NextRequest) {
                   allPresets.push(item);
                 }
               });
-            } catch {}
+            } catch { }
           }
 
           return NextResponse.json({
@@ -1024,7 +1113,7 @@ export async function POST(req: NextRequest) {
             },
           });
         }
-      } catch (ytErr) {}
+      } catch (ytErr) { }
 
       // Explicit error response for TikTok if all direct stream engines fail
       return NextResponse.json(
@@ -1196,101 +1285,203 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. INSTAGRAM EXTRACTOR (SEPARATED: REELS VIDEO VS POST/CAROUSEL)
+    // 4. INSTAGRAM EXTRACTOR (ROBUST MULTI-TIER CRAWLER FOR POST, REELS & CAROUSEL)
     if (isInstagram) {
       let videoUrl = '';
-      const images: string[] = [];
-      let title = 'Instagram Media';
-      let author = 'instagram_creator';
+      let images: string[] = [];
+      let title = '';
+      let author = '';
       let thumbnail = '';
 
       const isReel = cleanUrl.includes('/reel/') || cleanUrl.includes('/reels/') || type === 'reel';
-      const shortcodeMatch = cleanUrl.match(/\/(?:p|reel|reels|tv|share)\/([a-zA-Z0-9_\-]+)/);
+      const shortcodeMatch = cleanUrl.match(/\/(?:p|reel|reels|tv|share)\/([a-zA-Z0-9_\-]+)/i);
       const shortcode = shortcodeMatch ? shortcodeMatch[1] : '';
+      const cleanIgType = isReel ? 'reel' : 'p';
 
       if (shortcode) {
-        try {
-          const embedEndpoint = isReel
-            ? `https://www.instagram.com/reel/${shortcode}/embed/captioned/`
-            : `https://www.instagram.com/p/${shortcode}/embed/`;
+        // Prioritized User-Agents: Googlebot gets full embed without login walls
+        const botUas = [
+          'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+          'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+          'TelegramBot (like TwitterBot)',
+        ];
 
-          const igEmbedRes = await fetch(embedEndpoint, {
-            headers: {
-              'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
-              Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'Accept-Language': 'en-US,en;q=0.9',
-            },
-            signal: AbortSignal.timeout(6000),
-            cache: 'no-store',
-          });
+        // Tier 1: Embed scraper with contextJSON extraction
+        for (const ua of botUas) {
+          if (images.length > 0 || videoUrl) break;
+          try {
+            const embedEndpoint = `https://www.instagram.com/${cleanIgType}/${shortcode}/embed/captioned/`;
+            const embedRes = await fetch(embedEndpoint, {
+              headers: {
+                'User-Agent': ua,
+                Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+              },
+              signal: AbortSignal.timeout(6000),
+              cache: 'no-store',
+            });
 
-          if (igEmbedRes.ok) {
-            const igHtml = await igEmbedRes.text();
+            if (embedRes.ok) {
+              const embedHtml = await embedRes.text();
 
-            // Author
-            const userMatch =
-              igHtml.match(/class="[^"]*EmbeddedMediaUser[^"]*"[^>]*>([^<]+)</i) ||
-              igHtml.match(/class="UsernameText"[^>]*>([^<]+)</i) ||
-              igHtml.match(/@([a-zA-Z0-9._]+)/);
-            if (userMatch) author = userMatch[1].trim();
+              // 1. Primary: Strict contextJSON Parser (100% accurate for sidecars/carousels)
+              const contextJsonMatch = embedHtml.match(/"contextJSON"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+              if (contextJsonMatch) {
+                try {
+                  const unescaped = JSON.parse(`"${contextJsonMatch[1]}"`);
+                  const data = JSON.parse(unescaped);
+                  const media = data?.gql_data?.shortcode_media;
 
-            // Caption / Title
-            const captionMatch =
-              igHtml.match(/class="Caption"[^>]*>([\s\S]*?)<\/div>/i) ||
-              igHtml.match(/<title>([^<]+)<\/title>/i);
-            if (captionMatch) {
-              const rawCaption = captionMatch[1].replace(/<[^>]+>/g, '').trim();
-              if (rawCaption) title = rawCaption.slice(0, 100);
-            }
+                  if (media) {
+                    if (media.owner?.username && !author) {
+                      author = media.owner.username;
+                    }
 
-            // Video Stream check
-            const vidMatch =
-              igHtml.match(/<video[^>]+src="([^"]+)"/i) ||
-              igHtml.match(/class="[^"]*EmbeddedMediaVideo[^"]*"[^>]+src="([^"]+)"/i) ||
-              igHtml.match(/<meta\s+property=["']og:video(?::secure_url)?["']\s+content=["']([^"']+)["']/i) ||
-              igHtml.match(/(https:\/\/[^"'\s]+\.cdninstagram\.com\/o1\/v\/[^\s"']+\.mp4[^"'\s]*)/i);
-            if (vidMatch) {
-              videoUrl = vidMatch[1].replace(/&amp;/g, '&');
-            }
+                    const caption = media.edge_media_to_caption?.edges?.[0]?.node?.text;
+                    if (caption && !title) {
+                      title = caption.trim();
+                    }
 
-            // Thumbnail / Cover image
-            const coverMatch =
-              igHtml.match(/<img[^>]+class="[^"]*EmbeddedMediaImage[^"]*"[^>]+src="([^"]+)"/i) ||
-              igHtml.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-            if (coverMatch) {
-              thumbnail = coverMatch[1].replace(/&amp;/g, '&');
-            }
+                    if (media.display_url && !thumbnail) {
+                      thumbnail = media.display_url;
+                    }
 
-            // Post / Carousel photo handling (ONLY when NOT a Reel)
-            if (!isReel) {
-              const cdnMatches = igHtml.match(/src="(https:\/\/[^"]+)"/g) || [];
-              cdnMatches.forEach((m) => {
-                const raw = m.slice(5, -1).replace(/&amp;/g, '&');
-                if (
-                  raw.includes('scontent') &&
-                  (raw.includes('CAROUSEL_ITEM') || raw.includes('dst-jpg_e35') || raw.includes('p1080x1080'))
-                ) {
-                  if (!images.includes(raw)) images.push(raw);
+                    // Sidecar (Carousel) - Strictly 1 item per edge
+                    const sidecarEdges = media.edge_sidecar_to_children?.edges;
+                    if (Array.isArray(sidecarEdges) && sidecarEdges.length > 0) {
+                      for (const edge of sidecarEdges) {
+                        const node = edge?.node;
+                        if (!node) continue;
+                        const isVid = Boolean(node.is_video);
+                        const slideUrl = isVid ? node.video_url : node.display_url;
+                        if (slideUrl) {
+                          images.push(slideUrl);
+                        }
+                      }
+                    } else {
+                      // Single post or reel
+                      const isVid = Boolean(media.is_video);
+                      if (isVid && media.video_url) {
+                        videoUrl = media.video_url;
+                      }
+                      if (!isVid && media.display_url) {
+                        images.push(media.display_url);
+                      }
+                    }
+                  }
+                } catch (jsonErr) {
+                  console.error('Error parsing contextJSON:', jsonErr);
                 }
-              });
+              }
 
-              // Single image post fallback
-              if (images.length === 0 && !videoUrl && coverMatch) {
-                images.push(thumbnail);
+              // 2. Fallback: Standard HTML elements if contextJSON was absent
+              if (images.length === 0 && !videoUrl) {
+                const embedImgMatch = embedHtml.match(/<img[^>]+class="[^"]*EmbeddedMediaImage[^"]*"[^>]+src="([^"]+)"/i);
+                if (embedImgMatch && !thumbnail) {
+                  thumbnail = embedImgMatch[1].replace(/&amp;/g, '&');
+                }
+
+                const embedVidMatch =
+                  embedHtml.match(/<video[^>]+src="([^"]+)"/i) ||
+                  embedHtml.match(/class="[^"]*EmbeddedMediaVideo[^"]*"[^>]+src="([^"]+)"/i);
+                if (embedVidMatch && !videoUrl) {
+                  videoUrl = embedVidMatch[1].replace(/&amp;/g, '&');
+                }
+
+                const userMatch =
+                  embedHtml.match(/class="UsernameText"[^>]*>([^<]+)</i) ||
+                  embedHtml.match(/class="[^"]*EmbeddedMediaUser[^"]*"[^>]*>([^<]+)</i);
+                if (userMatch && !author) {
+                  author = userMatch[1].trim();
+                }
+
+                const captionMatch = embedHtml.match(/class="Caption"[^>]*>([\s\S]*?)<\/div>/i);
+                if (captionMatch && (!title || title.includes('Instagram photos and videos'))) {
+                  title = captionMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                }
+
+                if (!videoUrl && thumbnail && images.length === 0) {
+                  images.push(thumbnail);
+                }
               }
             }
+          } catch (embedErr: any) {
+            console.error('Instagram embed fetch error:', embedErr?.message);
           }
-        } catch {}
+        }
+
+        // Tier 2: Direct OpenGraph Fetch (as secondary fallback)
+        if (images.length === 0 && !videoUrl) {
+          try {
+            const directEndpoint = `https://www.instagram.com/${cleanIgType}/${shortcode}/`;
+            const directRes = await fetch(directEndpoint, {
+              headers: {
+                'User-Agent': botUas[0],
+                Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+              },
+              signal: AbortSignal.timeout(5000),
+              cache: 'no-store',
+            });
+
+            if (directRes.ok) {
+              const directHtml = await directRes.text();
+              const ogTitleMatch = directHtml.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+              const ogImgMatch = directHtml.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+              const ogVidMatch = directHtml.match(/<meta\s+property=["']og:video(?::secure_url)?["']\s+content=["']([^"']+)["']/i);
+
+              if (ogTitleMatch && !title) {
+                title = ogTitleMatch[1].replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#x27;/g, "'").trim();
+              }
+              if (ogImgMatch && !thumbnail) {
+                thumbnail = ogImgMatch[1].replace(/&amp;/g, '&');
+                if (images.length === 0) images.push(thumbnail);
+              }
+              if (ogVidMatch && !videoUrl) {
+                videoUrl = ogVidMatch[1].replace(/&amp;/g, '&');
+              }
+            }
+          } catch { }
+        }
+
+        // Tier 3: Strict Deduplication and Junk Filtering
+        const seenNames = new Set<string>();
+        const filteredImages: string[] = [];
+        for (const u of images) {
+          if (
+            u.includes('s150x150') ||
+            u.includes('s320x320') ||
+            u.includes('dst-jpg_s150x150') ||
+            u.includes('profile_pic') ||
+            u.includes('p150x150')
+          ) {
+            continue;
+          }
+          const cleanName = u.split('?')[0].split('/').pop() || u;
+          if (!seenNames.has(cleanName)) {
+            seenNames.add(cleanName);
+            filteredImages.push(u);
+          }
+        }
+        images = filteredImages;
       }
 
-      // Secondary: yt-dlp for Reels & Videos
-      if (!videoUrl) {
+      // Tier 4: yt-dlp fallback (for stubborn single Reels or videos)
+      if ((isReel && !videoUrl) || (!isReel && images.length === 0 && !videoUrl)) {
         try {
           const info = await extractWithYtDlp(cleanUrl, 5000);
           if (info) {
             title = info.title || info.description?.slice(0, 50) || title;
             author = info.uploader || info.channel || author;
             thumbnail = info.thumbnail || thumbnail;
+
+            if (Array.isArray(info.entries) && info.entries.length > 0) {
+              info.entries.forEach((e: any) => {
+                const u = e.url || e.thumbnail;
+                if (u && !images.includes(u)) images.push(u);
+              });
+            }
+
             if (Array.isArray(info.formats)) {
               const best = info.formats
                 .filter((f: any) => f.vcodec !== 'none' && f.url)
@@ -1299,78 +1490,91 @@ export async function POST(req: NextRequest) {
             }
             if (!videoUrl && info.url) videoUrl = info.url;
           }
-        } catch {}
+        } catch { }
       }
 
-      // Instagram Reels handler
+      // Title formatting
       if (isReel) {
         if (!title || title === 'Instagram Media') {
-          title = author !== 'instagram_creator' ? `Instagram Reel by @${author}` : 'Instagram Reel HD Video';
+          title = author ? `Instagram Reel by @${author}` : 'Instagram Reel HD Video';
         }
         if (!thumbnail) {
           thumbnail = `https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&q=80`;
         }
-      } else if (!videoUrl && images.length === 0) {
+      } else {
+        if (!title || title === 'Instagram Media') {
+          title = author ? `Instagram Post by @${author}` : 'Instagram Photo & Post';
+        }
+      }
+
+      // If author is still empty, default to clean handle
+      if (!author) {
+        author = 'instagram_creator';
+      }
+
+      // Public validation
+      if (!isReel && !videoUrl && images.length === 0) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Gagal mengekstrak media Instagram. Pastikan akun tidak diprivat dan tautan valid.',
-            message: 'Gagal mengekstrak media dari URL tersebut. Pastikan tautan publik dan aktif.',
+            error: 'Gagal mengekstrak media Instagram. Pastikan akun bersifat publik dan tautan valid.',
           },
           { status: 400 }
         );
       }
 
       const cleanTitle = title.replace(/[^\w\s-]/g, '').trim().slice(0, 45) || 'instagram_media';
-      // Instagram Reels is strictly a video format
-      const isVideo = isReel || Boolean(videoUrl);
+      const isVideo = isReel || (Boolean(videoUrl) && images.length === 0);
       const activeVideoTarget = videoUrl || thumbnail;
 
-      const resolutions: MediaResolutionOption[] = isVideo ? [
-        {
-          id: 'high',
-          label: 'Tinggi (HD 720p / 1080p)',
-          badge: 'REKOMENDASI',
-          resolution: 'HD Original',
-          format: 'mp4',
-          size: '~8.2 MB',
-          url: `/api/proxy-download?url=${encodeURIComponent(activeVideoTarget)}&filename=${encodeURIComponent(cleanTitle)}_HD.mp4`,
-          directUrl: activeVideoTarget,
-          isDefault: true,
-        },
-        {
-          id: 'medium',
-          label: 'Sedang (SD Hemat Kuota)',
-          badge: 'HEMAT KUOTA',
-          resolution: 'SD 480p',
-          format: 'mp4',
-          size: '~4.0 MB',
-          url: `/api/proxy-download?url=${encodeURIComponent(activeVideoTarget)}&filename=${encodeURIComponent(cleanTitle)}_SD.mp4`,
-          directUrl: activeVideoTarget,
-        },
-        {
-          id: 'audio',
-          label: 'Audio Musik (.MP3)',
-          badge: 'SOUND ASLI',
-          resolution: 'MP3 320 kbps',
-          format: 'mp3',
-          size: '~2.8 MB',
-          url: `/api/proxy-download?url=${encodeURIComponent(activeVideoTarget)}&filename=${encodeURIComponent(cleanTitle)}.mp3`,
-          directUrl: activeVideoTarget,
-        },
-      ] : [
-        {
-          id: 'high',
-          label: 'Foto Kualitas Penuh',
-          badge: 'RESOLUSI ASLI',
+      const resolutions: MediaResolutionOption[] = isVideo
+        ? [
+          {
+            id: 'high',
+            label: 'Tinggi (HD 720p / 1080p)',
+            badge: 'REKOMENDASI',
+            resolution: 'HD Original',
+            format: 'mp4',
+            size: '~8.2 MB',
+            url: `/api/proxy-download?url=${encodeURIComponent(activeVideoTarget)}&filename=${encodeURIComponent(cleanTitle)}_HD.mp4`,
+            directUrl: activeVideoTarget,
+            isDefault: true,
+          },
+          {
+            id: 'medium',
+            label: 'Sedang (SD Hemat Kuota)',
+            badge: 'HEMAT KUOTA',
+            resolution: 'SD 480p',
+            format: 'mp4',
+            size: '~4.0 MB',
+            url: `/api/proxy-download?url=${encodeURIComponent(activeVideoTarget)}&filename=${encodeURIComponent(cleanTitle)}_SD.mp4`,
+            directUrl: activeVideoTarget,
+          },
+          {
+            id: 'audio',
+            label: 'Audio Musik (.MP3)',
+            badge: 'SOUND ASLI',
+            resolution: 'MP3 320 kbps',
+            format: 'mp3',
+            size: '~2.8 MB',
+            url: `/api/proxy-download?url=${encodeURIComponent(activeVideoTarget)}&filename=${encodeURIComponent(cleanTitle)}.mp3`,
+            directUrl: activeVideoTarget,
+          },
+        ]
+        : images.map((img, idx) => ({
+          id: `slide_${idx + 1}`,
+          label: `Slide ${idx + 1} (${img.includes('.mp4') ? 'Video' : 'Foto HD'})`,
+          badge: `SLIDE ${idx + 1}`,
           resolution: 'Original HD',
-          format: 'jpg',
+          format: (img.includes('.mp4') ? 'mp4' : 'jpg') as any,
           size: '~1.5 MB',
-          url: `/api/proxy-download?url=${encodeURIComponent(images[0])}&filename=${encodeURIComponent(cleanTitle)}.jpg`,
-          directUrl: images[0],
-          isDefault: true,
-        },
-      ];
+          url: `/api/proxy-download?url=${encodeURIComponent(img)}&filename=${encodeURIComponent(cleanTitle)}_Slide${idx + 1}.${img.includes('.mp4') ? 'mp4' : 'jpg'}`,
+          directUrl: img,
+          isDefault: idx === 0,
+        }));
+
+      // Ensure thumbnails pass through proxy-media to prevent CORS / 403 hotlink errors
+      const safeThumbnail = thumbnail ? `/api/proxy-media?url=${encodeURIComponent(thumbnail)}` : '';
 
       return NextResponse.json({
         success: true,
@@ -1379,11 +1583,20 @@ export async function POST(req: NextRequest) {
           mediaType: isVideo ? 'video' : images.length > 1 ? 'slideshow' : 'image',
           title,
           author,
-          thumbnail: thumbnail || images[0] || '',
+          thumbnail: safeThumbnail || thumbnail || '',
           videoUrl: isVideo ? activeVideoTarget : undefined,
-          images: !isVideo && images.length > 0 ? images : undefined,
-          slides: !isVideo && images.length > 0 ? images.map((img, idx) => ({ id: idx + 1, url: img })) : undefined,
-          downloadVideoUrl: isVideo ? resolutions[0].url : undefined,
+          images: !isVideo && images.length > 0 ? images.map(img => `/api/proxy-media?url=${encodeURIComponent(img)}`) : undefined,
+          slides:
+            !isVideo && images.length > 0
+              ? images.map((img, idx) => ({
+                id: idx + 1,
+                url: `/api/proxy-download?url=${encodeURIComponent(img)}&filename=${encodeURIComponent(cleanTitle)}_Slide${idx + 1}.${img.includes('.mp4') ? 'mp4' : 'jpg'}`,
+                directUrl: img,
+                type: img.includes('.mp4') ? 'video' : 'image',
+                thumbnail: `/api/proxy-media?url=${encodeURIComponent(img)}`,
+              }))
+              : undefined,
+          downloadVideoUrl: isVideo ? resolutions[0]?.url : undefined,
           resolutions,
         },
       });
@@ -1435,7 +1648,7 @@ export async function POST(req: NextRequest) {
               }
             }
           }
-        } catch {}
+        } catch { }
       }
 
       if (!videoUrl && !isImageMedia && tweetId) {
@@ -1476,7 +1689,7 @@ export async function POST(req: NextRequest) {
               }
             }
           }
-        } catch {}
+        } catch { }
       }
 
       if (!videoUrl && !isImageMedia) {
@@ -1496,7 +1709,7 @@ export async function POST(req: NextRequest) {
               videoUrl = info.url;
             }
           }
-        } catch {}
+        } catch { }
       }
 
       if (!videoUrl && !isImageMedia) {
@@ -1606,7 +1819,7 @@ export async function POST(req: NextRequest) {
             }
           }
         }
-      } catch {}
+      } catch { }
 
       if (!videoUrl) {
         try {
@@ -1623,7 +1836,7 @@ export async function POST(req: NextRequest) {
             }
             if (!videoUrl && info.url) videoUrl = info.url;
           }
-        } catch {}
+        } catch { }
       }
 
       if (!videoUrl) {
@@ -1698,7 +1911,7 @@ export async function POST(req: NextRequest) {
             signal: AbortSignal.timeout(5000),
           });
           if (unshortRes.url) targetPinUrl = unshortRes.url;
-        } catch {}
+        } catch { }
       }
 
       try {
@@ -1718,7 +1931,9 @@ export async function POST(req: NextRequest) {
           const ogTitle =
             html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i) ||
             html.match(/<title>([^<]+)<\/title>/i);
-          if (ogTitle) title = ogTitle[1].replace(/ \| Pinterest$/i, '').trim();
+          if (ogTitle) {
+            title = ogTitle[1].replace(/ \| Pinterest$/i, '').split('|')[0].trim();
+          }
 
           const authorMatch =
             html.match(/"pinner":\{"username":"([^"]+)"/i) ||
@@ -1731,15 +1946,23 @@ export async function POST(req: NextRequest) {
             html.match(/(https:\/\/v1\.pinimg\.com\/videos\/[^\s"']+\.mp4)/i);
           if (ogVideo) videoUrl = ogVideo[1];
 
-          const ogImage =
-            html.match(/(https:\/\/[^"'\s]*i\.pinimg\.com\/originals\/[^\s"']+\.(?:jpg|jpeg|png|webp))/i) ||
-            html.match(/(https:\/\/[^"'\s]*i\.pinimg\.com\/736x\/[^\s"']+\.(?:jpg|jpeg|png|webp))/i) ||
-            html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-          if (ogImage) imageUrl = ogImage[1];
+          // Check pin preload link first (contains exact direct high-res image)
+          const preloadImg =
+            html.match(/<link[^>]+(?:id="pin-image-preload"|as="image")[^>]+href="([^"]+)"/i) ||
+            html.match(/<link[^>]+href="([^"]+)"[^>]+(?:id="pin-image-preload"|as="image")/i);
+          if (preloadImg) imageUrl = preloadImg[1];
+
+          if (!imageUrl) {
+            const ogImage =
+              html.match(/(https:\/\/[^"'\s]*i\.pinimg\.com\/originals\/[^\s"']+\.(?:jpg|jpeg|png|webp))/i) ||
+              html.match(/(https:\/\/[^"'\s]*i\.pinimg\.com\/736x\/[^\s"']+\.(?:jpg|jpeg|png|webp))/i) ||
+              html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+            if (ogImage) imageUrl = ogImage[1];
+          }
 
           thumbnail = imageUrl || videoUrl;
         }
-      } catch {}
+      } catch { }
 
       if (!videoUrl && !imageUrl) {
         try {
@@ -1756,7 +1979,7 @@ export async function POST(req: NextRequest) {
             }
             if (!videoUrl && info.url) videoUrl = info.url;
           }
-        } catch {}
+        } catch { }
       }
 
       if (!videoUrl && !imageUrl) {

@@ -86,12 +86,12 @@ export const AlightMotionPresetFinder: React.FC = () => {
       {/* Search Input Form */}
       <form onSubmit={handleScan} className="space-y-3">
         <label className="block text-xs font-bold text-[var(--neo-text)] uppercase tracking-wider">
-          Tautan TikTok / Video Edit yang Memuat Preset Alight Motion
+          Tautan TikTok / Video Edit / Saluran WhatsApp yang Memuat Preset Alight Motion
         </label>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="url"
-            placeholder="https://www.tiktok.com/@creator/video/... atau https://vt.tiktok.com/..."
+            placeholder="https://www.tiktok.com/@creator/video/... atau https://whatsapp.com/channel/..."
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             className="flex-1 px-4 py-2.5 rounded-xl neo-input text-xs font-medium"
@@ -220,7 +220,7 @@ export const AlightMotionPresetFinder: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      <div className="flex flex-wrap items-center gap-2 shrink-0 self-end sm:self-auto">
                         <button
                           type="button"
                           onClick={() => handleCopy(targetUrl, idx)}
@@ -239,6 +239,17 @@ export const AlightMotionPresetFinder: React.FC = () => {
                           )}
                         </button>
 
+                        {is5Mb && targetUrl.includes('alightcreative.com/am/share/') && (
+                          <a
+                            href={`com.alightcreative.motion://${targetUrl.replace(/^https?:\/\//, '')}`}
+                            className="neo-btn px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm bg-teal-500 hover:bg-teal-600 text-white border-2 border-black transition-transform active:scale-95"
+                            title="Buka langsung ke aplikasi Alight Motion tanpa lewat browser (Anti-Error)"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>Buka di App (Langsung)</span>
+                          </a>
+                        )}
+
                         <a
                           href={targetUrl}
                           target="_blank"
@@ -251,7 +262,7 @@ export const AlightMotionPresetFinder: React.FC = () => {
                             }`}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                          <span>{is5Mb ? '📥 Import Package / Buka Preset Alight Motion ↗' : isXml ? '📥 Buka & Unduh File XML ↗' : 'Buka Tautan Preset ↗'}</span>
+                          <span>{is5Mb ? '📥 Buka / Import Preset ↗' : isXml ? '📥 Buka & Unduh File XML ↗' : 'Buka Tautan Preset ↗'}</span>
                         </a>
                       </div>
                     </div>

@@ -15,6 +15,8 @@ import { ApkDownloaderTool } from './tools/ApkDownloaderTool';
 // Creator & Video Tools
 import { TikTokStalkerTool } from './tools/TikTokStalkerTool';
 import { AlightMotionPresetFinder } from './tools/AlightMotionPresetFinder';
+import { AnimeRecommendationFinder } from './tools/AnimeRecommendationFinder';
+import { AutoVectorXmlTool } from './tools/AutoVectorXmlTool';
 import { SafeZonePreviewer } from './tools/SafeZonePreviewer';
 import VideoGifStickerMaker from './tools/VideoGifStickerMaker';
 import VideoAudioMuteReplacer from './tools/VideoAudioMuteReplacer';
@@ -30,6 +32,8 @@ import { WebToPdf } from './tools/WebToPdf';
 import { OcrScanner } from './tools/OcrScanner';
 
 // Images Tools
+import { RemoveBackgroundTool } from './tools/RemoveBackgroundTool';
+import { PhotoUpscalerTool } from './tools/PhotoUpscalerTool';
 import { KoreanPhotoboothStrip } from './tools/KoreanPhotoboothStrip';
 import CamScannerEnhancer from './tools/CamScannerEnhancer';
 import { TargetSizeCompressor } from './tools/TargetSizeCompressor';
@@ -92,6 +96,10 @@ export const ToolDetailView: React.FC = () => {
         return <TikTokStalkerTool />;
       case 'alight-preset-finder':
         return <AlightMotionPresetFinder />;
+      case 'anime-finder':
+        return <AnimeRecommendationFinder />;
+      case 'auto-vector-xml':
+        return <AutoVectorXmlTool />;
       case 'safe-zone-previewer':
         return <SafeZonePreviewer />;
       case 'video-gif-sticker-maker':
@@ -116,6 +124,10 @@ export const ToolDetailView: React.FC = () => {
         return <OcrScanner />;
 
       // Images & Design
+      case 'remove-background':
+        return <RemoveBackgroundTool />;
+      case 'photo-upscaler':
+        return <PhotoUpscalerTool />;
       case 'korean-photobooth-strip':
         return <KoreanPhotoboothStrip />;
       case 'camscanner-enhancer':
@@ -141,7 +153,7 @@ export const ToolDetailView: React.FC = () => {
   };
 
   return (
-    <div key={tool.id} className="w-full max-w-5xl mx-auto px-3 sm:px-4 pt-4 md:pt-20 pb-28 md:pb-16 space-y-4">
+    <div key={tool.id} className="w-full max-w-5xl mx-auto px-3 sm:px-4 pt-4 md:pt-24 pb-28 md:pb-16 space-y-4">
       {/* Top Breadcrumb Navigation */}
       <div className="flex items-center justify-between gap-3 pb-2 border-b-2 border-[var(--neo-border)]">
         <button

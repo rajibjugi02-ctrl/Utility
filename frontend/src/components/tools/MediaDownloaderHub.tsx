@@ -373,11 +373,13 @@ export const MediaDownloaderHub: React.FC = () => {
   const setSelectedResId = (selectedResId: string) => updateCurrentState({ selectedResId });
 
   // 2. TAMPILAN PANEL KERJA KHUSUS PLATFORM YANG DIPILIH
+  const totalSlideCount =
+    (Array.isArray(result?.images) ? result.images.length : 0) ||
+    (Array.isArray(result?.slides) ? result.slides.length : 0);
+
   const isSlideshow =
-    result?.mediaType === 'slideshow' ||
-    result?.mediaType === 'image' ||
-    (Array.isArray(result?.images) && result.images.length > 0) ||
-    (Array.isArray(result?.slides) && result.slides.length > 0);
+    (result?.mediaType === 'slideshow' && totalSlideCount > 1) ||
+    (totalSlideCount > 1);
 
   const slideImages: string[] = isSlideshow
     ? (Array.isArray(result.images) && result.images.length > 0)
@@ -589,12 +591,17 @@ export const MediaDownloaderHub: React.FC = () => {
               )}
             </div>
           ) : (
-            /* B. JIKA FORMAT VIDEO TUNGGAL */
+            /* B. JIKA FORMAT VIDEO ATAU FOTO TUNGGAL */
             (() => {
               const activeRes = Array.isArray(result.resolutions)
                 ? result.resolutions.find((r: any) => r.id === selectedResId) || result.resolutions[0]
                 : null;
-              const activeVideoRaw = activeRes?.directUrl || activeRes?.videoUrl || result.videoUrl;
+              const activeVideoRaw =
+                activeRes?.directUrl ||
+                activeRes?.videoUrl ||
+                result.videoUrl ||
+                (Array.isArray(result.images) && result.images[0]) ||
+                result.thumbnail;
               // For TikTok/external CDN: proxy the video through our server to bypass CORS/hotlink blocks
               const needsProxy = Boolean(activeVideoRaw && (
                 activeVideoRaw.includes('tikcdn.io') ||
@@ -613,13 +620,18 @@ export const MediaDownloaderHub: React.FC = () => {
                 ? `/api/proxy-media?url=${encodeURIComponent(activeVideoRaw)}`
                 : activeVideoRaw;
               const hasEmbedPlayer = Boolean(result.embedPlayerUrl);
-              const isImageFile = Boolean(activeVideoRaw && (
-                activeVideoRaw.includes('.jpg') ||
-                activeVideoRaw.includes('.jpeg') ||
-                activeVideoRaw.includes('.png') ||
-                activeVideoRaw.includes('.webp') ||
-                activeVideoRaw.includes('pbs.twimg.com/media')
-              ));
+              const isImageFile = Boolean(
+                result.mediaType === 'image' ||
+                (Array.isArray(result.images) && result.images.length > 0) ||
+                (activeVideoRaw && (
+                  activeVideoRaw.includes('.jpg') ||
+                  activeVideoRaw.includes('.jpeg') ||
+                  activeVideoRaw.includes('.png') ||
+                  activeVideoRaw.includes('.webp') ||
+                  activeVideoRaw.includes('pbs.twimg.com/media') ||
+                  activeVideoRaw.includes('pinimg.com')
+                ))
+              );
               const isDirectMp4 = !isImageFile && Boolean(activeVideoRaw && (
                 activeVideoRaw.includes('.mp4') ||
                 activeVideoRaw.includes('googlevideo') ||
@@ -638,7 +650,7 @@ export const MediaDownloaderHub: React.FC = () => {
               return (
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row gap-4 items-start">
-                    {/* Live Video Player or Thumbnail with Dynamic Natural Aspect Ratio */}
+                    {/* Live Video Player or Image Preview with Dynamic Natural Aspect Ratio */}
                     <div
                       className={`relative rounded-2xl overflow-hidden border-2 border-[var(--neo-border)] shadow-neo bg-black flex items-center justify-center shrink-0 transition-all ${
                         isPortrait
@@ -673,6 +685,29 @@ export const MediaDownloaderHub: React.FC = () => {
                           className="w-full h-full"
                           title={result.title || 'YouTube Video'}
                         />
+                      ) : isImageFile ? (
+                        <div className="w-full h-full bg-neutral-950 flex flex-col items-center justify-between text-center relative overflow-hidden group">
+                          {/* Image preview */}
+                          {(activeVideoRaw || result.thumbnail) && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={activeVideoRaw || result.thumbnail}
+                              alt={result.title || 'Foto HD'}
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-200"
+                            />
+                          )}
+                          <div className="absolute top-2 left-2 z-10">
+                            <span className="neo-badge bg-[var(--neo-accent)] text-black text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border border-black shadow-xs">
+                              {selectedPlatform.name} FOTO HD
+                            </span>
+                          </div>
+                          <div className="absolute top-2 right-2 z-10">
+                            <span className="neo-badge bg-emerald-500 text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border border-black shadow-xs">
+                              SIAP DIUNDUH ✓
+                            </span>
+                          </div>
+                        </div>
                       ) : (
                         <div className="w-full h-full bg-gradient-to-b from-neutral-900 to-black flex flex-col items-center justify-between text-center relative overflow-hidden">
                           {/* Cover / Thumbnail full bleed */}

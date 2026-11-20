@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
     "@tiptap/extension-color": "^2.8.0",
     "@tiptap/extension-highlight": "^2.27.3",
     "@tiptap/extension-image": "^2.8.0",
@@ -26,6 +27,7 @@
     "exifreader": "^4.54.0",
     "framer-motion": "^11.11.9",
     "html2canvas": "^1.4.1",
+    "imagetracerjs": "^1.2.6",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.2",
     "lucide-react": "^0.453.0",

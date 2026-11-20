@@ -26,6 +26,7 @@ export const FloatingNavbar: React.FC = () => {
   const [visible, setVisible] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -35,11 +36,11 @@ export const FloatingNavbar: React.FC = () => {
       const currentY = window.scrollY;
       setScrolled(currentY > 20);
 
-      // Auto-hide when scrolling down past 80px
-      if (currentY > 80) {
-        if (currentY > lastY + 5) {
+      // Auto-hide promptly when scrolling down past 50px so it never blocks page content
+      if (currentY > 50) {
+        if (currentY > lastY + 2) {
           setVisible(false);
-        } else if (currentY < lastY - 5) {
+        } else if (currentY < lastY - 4) {
           setVisible(true);
         }
       } else {
@@ -48,8 +49,23 @@ export const FloatingNavbar: React.FC = () => {
       lastY = currentY;
     };
 
+    // Watch document.body.style.overflow to hide FloatingNavbar during any modal presentation
+    const checkModalState = () => {
+      if (typeof document !== 'undefined') {
+        setIsModalOpen(document.body.style.overflow === 'hidden');
+      }
+    };
+    checkModalState();
+    const observer = new MutationObserver(checkModalState);
+    if (typeof document !== 'undefined' && document.body) {
+      observer.observe(document.body, { attributes: true, attributeFilter: ['style'] });
+    }
+
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      observer.disconnect();
+    };
   }, []);
 
   const t = i18n[language] || i18n['id'];
@@ -78,6 +94,8 @@ export const FloatingNavbar: React.FC = () => {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
   };
+
+  if (isModalOpen) return null;
 
   return (
     <header className="hidden md:flex fixed top-4 inset-x-0 z-[100] justify-center px-4 pointer-events-none">
