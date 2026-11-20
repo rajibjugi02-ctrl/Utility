@@ -14,68 +14,87 @@ export const RealTimeProgress: React.FC = () => {
 
   useEffect(() => {
     if (!activeJob || !activeJob.taskId) return;
+    if (typeof window === 'undefined') return;
 
-    const host = window.location.hostname || 'localhost';
-    const wsUrl = `ws://${host}:8000/ws/progress/${activeJob.taskId}`;
+    let ws: WebSocket | null = null;
+    let pingInterval: any = null;
 
-    const ws = new WebSocket(wsUrl);
-    socketRef.current = ws;
+    try {
+      const host = window.location.hostname || 'localhost';
+      // Only connect to port 8000 in local dev environment where python backend runs
+      const isLocal = host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host.startsWith('10.');
+      if (!isLocal) {
+        return;
+      }
 
-    ws.onopen = () => {
-      const pingInterval = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send('ping');
-        }
-      }, 5000);
-      (ws as any)._pingInterval = pingInterval;
-    };
+      const isHttps = window.location.protocol === 'https:';
+      const wsProtocol = isHttps ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${host}:8000/ws/progress/${activeJob.taskId}`;
 
-    ws.onmessage = (event) => {
-      try {
-        if (event.data === 'pong') return;
-        const data = JSON.parse(event.data);
+      ws = new WebSocket(wsUrl);
+      socketRef.current = ws;
 
-        updateActiveJob({
-          status: data.status,
-          progress: typeof data.progress === 'number' ? data.progress : activeJob.progress,
-          speed: data.speed || activeJob.speed,
-          eta: data.eta || activeJob.eta,
-          message: data.message || activeJob.message,
-          downloadUrl: data.download_url || activeJob.downloadUrl,
-        });
+      ws.onopen = () => {
+        pingInterval = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send('ping');
+          }
+        }, 5000);
+      };
 
-        if (data.status === 'completed') {
-          try {
-            confetti({
-              particleCount: 50,
-              spread: 60,
-              origin: { y: 0.8 },
-            });
-          } catch {}
+      ws.onmessage = (event) => {
+        try {
+          if (event.data === 'pong') return;
+          const data = JSON.parse(event.data);
 
-          addHistoryItem({
-            type: activeJob.type || 'download',
-            title: activeJob.title || 'Media Download',
-            subtitle: data.filename || 'Berkas selesai diunduh',
-            downloadUrl: data.download_url,
+          updateActiveJob({
+            status: data.status,
+            progress: typeof data.progress === 'number' ? data.progress : activeJob.progress,
+            speed: data.speed || activeJob.speed,
+            eta: data.eta || activeJob.eta,
+            message: data.message || activeJob.message,
+            downloadUrl: data.download_url || activeJob.downloadUrl,
           });
-        }
-      } catch (err) {
-        console.error('WS Error:', err);
-      }
-    };
 
-    ws.onclose = () => {
-      if ((ws as any)._pingInterval) {
-        clearInterval((ws as any)._pingInterval);
-      }
-    };
+          if (data.status === 'completed') {
+            try {
+              confetti({
+                particleCount: 50,
+                spread: 60,
+                origin: { y: 0.8 },
+              });
+            } catch {}
+
+            addHistoryItem({
+              type: activeJob.type || 'download',
+              title: activeJob.title || 'Media Download',
+              subtitle: data.filename || 'Berkas selesai diunduh',
+              downloadUrl: data.download_url,
+            });
+          }
+        } catch (err) {
+          console.error('WS Error:', err);
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.warn('WS connection warning:', err);
+      };
+
+      ws.onclose = () => {
+        if (pingInterval) clearInterval(pingInterval);
+      };
+    } catch (e) {
+      console.warn('WebSocket init exception caught:', e);
+    }
 
     return () => {
-      if ((ws as any)._pingInterval) {
-        clearInterval((ws as any)._pingInterval);
+      if (pingInterval) clearInterval(pingInterval);
+      if (ws) {
+        try {
+          ws.close();
+        } catch {}
       }
-      ws.close();
     };
   }, [activeJob?.taskId]);
 

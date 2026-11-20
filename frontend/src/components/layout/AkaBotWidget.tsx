@@ -207,11 +207,10 @@ export const AkaBotWidget: React.FC = () => {
                 return (
                   <div key={msg.id} className={`flex flex-col ${isAka ? 'items-start' : 'items-end'}`}>
                     <div
-                      className={`max-w-[85%] rounded-2xl p-3 border leading-relaxed break-words shadow-xs ${
-                        isAka
-                          ? 'bg-[var(--neo-bg)] text-[var(--neo-text)] border-[var(--neo-border)] rounded-tl-sm'
-                          : 'bg-[#E60026] text-white border-black rounded-tr-sm font-medium'
-                      }`}
+                      className={`max-w-[85%] rounded-2xl p-3 border leading-relaxed break-words shadow-xs ${isAka
+                        ? 'bg-[var(--neo-bg)] text-[var(--neo-text)] border-[var(--neo-border)] rounded-tl-sm'
+                        : 'bg-[#E60026] text-white border-black rounded-tr-sm font-medium'
+                        }`}
                     >
                       <div className="whitespace-pre-wrap">{msg.text}</div>
                     </div>
