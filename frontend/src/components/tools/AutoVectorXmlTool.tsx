@@ -28,6 +28,7 @@ interface RawPathData {
   argbHex: string;
   opacity: number;
   originalIndex: number;
+  transformMatrix: number[];
 }
 
 interface AlightPathShape {
@@ -188,6 +189,134 @@ function douglasPeucker(points: Point[], epsilon: number): Point[] {
   }
 }
 
+function isNearWhite(hexRRGGBB: string): boolean {
+  if (!hexRRGGBB || hexRRGGBB.length !== 6) return false;
+  const r = parseInt(hexRRGGBB.slice(0, 2), 16);
+  const g = parseInt(hexRRGGBB.slice(2, 4), 16);
+  const b = parseInt(hexRRGGBB.slice(4, 6), 16);
+  return r >= 245 && g >= 245 && b >= 245;
+}
+
+/**
+ * Multiplies two 2D affine transformation matrices: [a, b, c, d, e, f]
+ * representing 3x3 affine matrix:
+ * [ a  c  e ]
+ * [ b  d  f ]
+ * [ 0  0  1 ]
+ */
+function multiplyMatrices(m1: number[], m2: number[]): number[] {
+  const [a1, b1, c1, d1, e1, f1] = m1;
+  const [a2, b2, c2, d2, e2, f2] = m2;
+  return [
+    a1 * a2 + c1 * b2,
+    b1 * a2 + d1 * b2,
+    a1 * c2 + c1 * d2,
+    b1 * c2 + d1 * d2,
+    a1 * e2 + c1 * f2 + e1,
+    b1 * e2 + d1 * f2 + f1,
+  ];
+}
+
+/**
+ * Parses an SVG transform attribute string into a 2D affine matrix [a, b, c, d, e, f].
+ * Identity matrix: [1, 0, 0, 1, 0, 0]
+ * Handles translate, scale, matrix, rotate, skewX, skewY with space or comma delimiters.
+ */
+function parseSvgTransform(transformStr: string): number[] {
+  let matrix = [1, 0, 0, 1, 0, 0];
+  if (!transformStr || !transformStr.trim()) return matrix;
+
+  const fnRegex = /([a-zA-Z]+)\s*\(([^)]+)\)/g;
+  const numRegex = /[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = fnRegex.exec(transformStr)) !== null) {
+    const type = match[1].toLowerCase();
+    const rawNums = match[2].match(numRegex) || [];
+    const args = rawNums.map(parseFloat).filter(Number.isFinite);
+
+    let m = [1, 0, 0, 1, 0, 0];
+    if (type === 'translate') {
+      const tx = args[0] || 0;
+      const ty = args.length > 1 ? args[1] : 0;
+      m = [1, 0, 0, 1, tx, ty];
+    } else if (type === 'scale') {
+      const sx = args[0] !== undefined ? args[0] : 1;
+      const sy = args.length > 1 ? args[1] : sx;
+      m = [sx, 0, 0, sy, 0, 0];
+    } else if (type === 'matrix' && args.length >= 6) {
+      m = [args[0], args[1], args[2], args[3], args[4], args[5]];
+    } else if (type === 'rotate') {
+      const deg = args[0] || 0;
+      const rad = (deg * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      if (args.length >= 3) {
+        const cx = args[1];
+        const cy = args[2];
+        const t1 = [1, 0, 0, 1, cx, cy];
+        const r = [cos, sin, -sin, cos, 0, 0];
+        const t2 = [1, 0, 0, 1, -cx, -cy];
+        m = multiplyMatrices(t1, multiplyMatrices(r, t2));
+      } else {
+        m = [cos, sin, -sin, cos, 0, 0];
+      }
+    } else if (type === 'skewx') {
+      const deg = args[0] || 0;
+      const rad = (deg * Math.PI) / 180;
+      m = [1, 0, Math.tan(rad), 1, 0, 0];
+    } else if (type === 'skewy') {
+      const deg = args[0] || 0;
+      const rad = (deg * Math.PI) / 180;
+      m = [1, Math.tan(rad), 0, 1, 0, 0];
+    }
+
+    matrix = multiplyMatrices(matrix, m);
+  }
+
+  return matrix;
+}
+
+/**
+ * Traverses an SVG element upwards to rootSvg, accumulating all transform attributes
+ * from ancestor <g> containers down to the element itself.
+ */
+function getCumulativeTransform(el: Element, rootSvg: Element): number[] {
+  let curr: Element | null = el;
+  const transforms: string[] = [];
+
+  while (curr && curr !== rootSvg && curr.tagName.toLowerCase() !== 'svg') {
+    const tAttr = curr.getAttribute('transform');
+    const styleAttr = curr.getAttribute('style') || '';
+    const styleMatch = styleAttr.match(/transform:\s*([^;]+)/i);
+    const styleT = styleMatch ? styleMatch[1].trim() : '';
+
+    const combined = [tAttr, styleT].filter(Boolean).join(' ');
+    if (combined) {
+      transforms.unshift(combined);
+    }
+    curr = curr.parentElement;
+  }
+
+  let finalMatrix = [1, 0, 0, 1, 0, 0];
+  for (const t of transforms) {
+    const m = parseSvgTransform(t);
+    finalMatrix = multiplyMatrices(finalMatrix, m);
+  }
+
+  return finalMatrix;
+}
+
+/**
+ * Transforms a 2D point (x, y) with an affine matrix [a, b, c, d, e, f].
+ */
+function transformPoint(pt: Point, m: number[]): Point {
+  return {
+    x: pt.x * m[0] + pt.y * m[2] + m[4],
+    y: pt.x * m[1] + pt.y * m[3] + m[5],
+  };
+}
+
 /**
  * Splits a compound SVG path string into individual sub-paths by 'M' / 'm' commands.
  * This guarantees getPointAtLength() is called per sub-path and NEVER draws stray connecting lines across holes.
@@ -209,12 +338,14 @@ function splitIntoSubPaths(d: string): string[] {
  * into high-precision Alight Motion polygon points format:
  * "M rx0 ry0L rx1 ry1...L rx0 ry0" (closing with initial point, strictly NO 'Z').
  * Samples sub-paths independently to eliminate stray connecting lines.
+ * Applies element & ancestor SVG transformMatrix to guarantee 100% accurate world position.
  */
 function normalizePathToAlightMotion(
   d: string,
   scale: number,
   offsetX: number,
-  offsetY: number
+  offsetY: number,
+  transformMatrix: number[] = [1, 0, 0, 1, 0, 0]
 ): {
   normalizedPath: string;
   centerX: number;
@@ -260,9 +391,11 @@ function normalizePathToAlightMotion(
           const len = (i / numSteps) * subPathLen;
           const pt = pathEl.getPointAtLength(len);
           if (Number.isFinite(pt.x) && Number.isFinite(pt.y)) {
+            // Apply cumulative SVG transform (e.g. translate from VTracer / <g>) to obtain true world coordinate
+            const worldPt = transformPoint(pt, transformMatrix);
             rawPoints.push({
-              x: pt.x * scale + offsetX,
-              y: pt.y * scale + offsetY,
+              x: worldPt.x * scale + offsetX,
+              y: worldPt.y * scale + offsetY,
             });
           }
         }
@@ -276,9 +409,10 @@ function normalizePathToAlightMotion(
         }
         for (let i = 0; i < coords.length; i += 2) {
           if (coords[i + 1] !== undefined) {
+            const worldPt = transformPoint({ x: coords[i], y: coords[i + 1] }, transformMatrix);
             rawPoints.push({
-              x: coords[i] * scale + offsetX,
-              y: coords[i + 1] * scale + offsetY,
+              x: worldPt.x * scale + offsetX,
+              y: worldPt.y * scale + offsetY,
             });
           }
         }
@@ -492,6 +626,9 @@ export const AutoVectorXmlTool: React.FC = () => {
 
         if (alpha < 0.05) return;
 
+        // Calculate cumulative transformation matrix from root <svg> down to this element
+        const transformMatrix = getCumulativeTransform(el, svgEl);
+
         rawPaths.push({
           d,
           fillHex,
@@ -499,19 +636,24 @@ export const AutoVectorXmlTool: React.FC = () => {
           argbHex,
           opacity: alpha,
           originalIndex: elementIdx++,
+          transformMatrix,
         });
       });
 
       if (rawPaths.length === 0) return [];
 
-      // 3. Normalize each path to Alight Motion coordinates
+      // 3. Normalize each path to Alight Motion coordinates with true cumulative transform applied
       const candidateShapes: AlightPathShape[] = [];
 
       rawPaths.forEach((p, idx) => {
-        const norm = normalizePathToAlightMotion(p.d, scale, offsetX, offsetY);
+        const norm = normalizePathToAlightMotion(p.d, scale, offsetX, offsetY, p.transformMatrix);
         if (norm && norm.normalizedPath) {
-          // Filter background putih/transparan jika toggle ON
-          if (ignoreWhiteBackground && p.hexRRGGBB === 'ffffff' && norm.area > canvasW * canvasH * 0.70) {
+          // Filter background putih/transparan jika toggle ON (layer > 85% area vektor atau > 60% kanvas)
+          const isFullBackground =
+            norm.area > vbW * vbH * scale * scale * 0.85 ||
+            norm.area > canvasW * canvasH * 0.60;
+
+          if (ignoreWhiteBackground && isNearWhite(p.hexRRGGBB) && isFullBackground) {
             return;
           }
 
@@ -1036,7 +1178,7 @@ ${shapesXml}
                 </span>
               </div>
               <div className="space-y-2">
-                {(['ultra', 'standard'] as QualityPreset[]).map((preset) => {
+                {(['light', 'standard', 'high'] as QualityPreset[]).map((preset) => {
                   const cfg = QUALITY_CONFIGS[preset];
                   const active = qualityPreset === preset;
                   return (
