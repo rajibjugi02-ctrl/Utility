@@ -50,7 +50,7 @@ interface Point {
 }
 
 type CanvasRatio = '1:1' | '9:16' | '16:9';
-type QualityPreset = 'ultra' | 'standard';
+type QualityPreset = 'ultra' | 'standard' | 'light';
 
 const CANVAS_PRESETS: Record<CanvasRatio, { width: number; height: number; label: string; desc: string }> = {
   '1:1': { width: 1080, height: 1080, label: '1:1', desc: '1080×1080 (Square)' },
@@ -74,6 +74,14 @@ const QUALITY_CONFIGS: Record<QualityPreset, { maxLayers: number; colors: number
     minRatio: 0.02,
     label: 'Standar (Cepat & Ringan)',
     desc: 'Tracing lebih cepat, jumlah layer lebih ringkas untuk ilustrasi umum.',
+  },
+  light: {
+    maxLayers: 80,
+    colors: 8,
+    pathOmit: 6,
+    minRatio: 0.05,
+    label: 'Ringan (Layer Minimalis)',
+    desc: 'Tracing sangat ringan (~80 layer), sangat cepat untuk HP spek rendah atau preview.',
   },
 };
 
@@ -527,185 +535,185 @@ export const AutoVectorXmlTool: React.FC = () => {
         const svgEl = doc.querySelector('svg');
         if (!svgEl) return [];
 
-      const currentSize = CANVAS_PRESETS[canvasRatio];
-      const canvasW = currentSize.width;
-      const canvasH = currentSize.height;
+        const currentSize = CANVAS_PRESETS[canvasRatio];
+        const canvasW = currentSize.width;
+        const canvasH = currentSize.height;
 
-      // 1. Determine SVG viewbox and target canvas scaling
-      let vbMinX = 0, vbMinY = 0, vbW = 1080, vbH = 1080;
-      const viewBoxAttr = svgEl.getAttribute('viewBox');
-      if (viewBoxAttr) {
-        const parts = viewBoxAttr.split(/[\s,]+/).map(parseFloat);
-        if (parts.length >= 4 && parts[2] > 0 && parts[3] > 0) {
-          vbMinX = parts[0];
-          vbMinY = parts[1];
-          vbW = parts[2];
-          vbH = parts[3];
+        // 1. Determine SVG viewbox and target canvas scaling
+        let vbMinX = 0, vbMinY = 0, vbW = 1080, vbH = 1080;
+        const viewBoxAttr = svgEl.getAttribute('viewBox');
+        if (viewBoxAttr) {
+          const parts = viewBoxAttr.split(/[\s,]+/).map(parseFloat);
+          if (parts.length >= 4 && parts[2] > 0 && parts[3] > 0) {
+            vbMinX = parts[0];
+            vbMinY = parts[1];
+            vbW = parts[2];
+            vbH = parts[3];
+          }
+        } else {
+          const wAttr = parseFloat(svgEl.getAttribute('width') || '1080');
+          const hAttr = parseFloat(svgEl.getAttribute('height') || '1080');
+          if (wAttr > 0 && hAttr > 0) {
+            vbW = wAttr;
+            vbH = hAttr;
+          }
         }
-      } else {
-        const wAttr = parseFloat(svgEl.getAttribute('width') || '1080');
-        const hAttr = parseFloat(svgEl.getAttribute('height') || '1080');
-        if (wAttr > 0 && hAttr > 0) {
-          vbW = wAttr;
-          vbH = hAttr;
-        }
-      }
 
-      // Proportional scale to occupy 82% of canvas, perfectly centered
-      const scale = Math.min((canvasW * 0.82) / vbW, (canvasH * 0.82) / vbH);
-      const offsetX = (canvasW - vbW * scale) / 2 - vbMinX * scale;
-      const offsetY = (canvasH - vbH * scale) / 2 - vbMinY * scale;
+        // Proportional scale to occupy 82% of canvas, perfectly centered
+        const scale = Math.min((canvasW * 0.82) / vbW, (canvasH * 0.82) / vbH);
+        const offsetX = (canvasW - vbW * scale) / 2 - vbMinX * scale;
+        const offsetY = (canvasH - vbH * scale) / 2 - vbMinY * scale;
 
-      // 2. Extract vector elements (<path>, <polygon>, <polyline>, <rect>, <circle>, <ellipse>)
-      const elements = doc.querySelectorAll('path, polygon, polyline, rect, circle, ellipse');
-      const rawPaths: RawPathData[] = [];
-      let elementIdx = 0;
+        // 2. Extract vector elements (<path>, <polygon>, <polyline>, <rect>, <circle>, <ellipse>)
+        const elements = doc.querySelectorAll('path, polygon, polyline, rect, circle, ellipse');
+        const rawPaths: RawPathData[] = [];
+        let elementIdx = 0;
 
-      elements.forEach((el) => {
-        let d = '';
-        const tag = el.tagName.toLowerCase();
+        elements.forEach((el) => {
+          let d = '';
+          const tag = el.tagName.toLowerCase();
 
-        if (tag === 'path') {
-          d = el.getAttribute('d') || '';
-        } else if (tag === 'polygon' || tag === 'polyline') {
-          const points = el.getAttribute('points') || '';
-          const pairs = points.trim().split(/[\s,]+/);
-          if (pairs.length >= 4) {
-            d = `M ${pairs[0]} ${pairs[1]}`;
-            for (let i = 2; i < pairs.length; i += 2) {
-              if (pairs[i] && pairs[i + 1]) {
-                d += ` L ${pairs[i]} ${pairs[i + 1]}`;
+          if (tag === 'path') {
+            d = el.getAttribute('d') || '';
+          } else if (tag === 'polygon' || tag === 'polyline') {
+            const points = el.getAttribute('points') || '';
+            const pairs = points.trim().split(/[\s,]+/);
+            if (pairs.length >= 4) {
+              d = `M ${pairs[0]} ${pairs[1]}`;
+              for (let i = 2; i < pairs.length; i += 2) {
+                if (pairs[i] && pairs[i + 1]) {
+                  d += ` L ${pairs[i]} ${pairs[i + 1]}`;
+                }
               }
+              if (tag === 'polygon') d += ' Z';
             }
-            if (tag === 'polygon') d += ' Z';
-          }
-        } else if (tag === 'rect') {
-          const x = parseFloat(el.getAttribute('x') || '0');
-          const y = parseFloat(el.getAttribute('y') || '0');
-          const w = parseFloat(el.getAttribute('width') || '0');
-          const h = parseFloat(el.getAttribute('height') || '0');
-          if (w > 0 && h > 0) {
-            d = `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`;
-          }
-        } else if (tag === 'circle') {
-          const cx = parseFloat(el.getAttribute('cx') || '0');
-          const cy = parseFloat(el.getAttribute('cy') || '0');
-          const r = parseFloat(el.getAttribute('r') || '0');
-          if (r > 0) {
-            const k = 0.5522847498 * r;
-            d = `M ${cx} ${cy - r} C ${cx + k} ${cy - r} ${cx + r} ${cy - k} ${cx + r} ${cy} C ${cx + r} ${cy + k} ${cx + k} ${cy + r} ${cx} ${cy + r} C ${cx - k} ${cy + r} ${cx - r} ${cy + k} ${cx - r} ${cy} C ${cx - r} ${cy - k} ${cx - k} ${cy - r} ${cx} ${cy - r} Z`;
-          }
-        } else if (tag === 'ellipse') {
-          const cx = parseFloat(el.getAttribute('cx') || '0');
-          const cy = parseFloat(el.getAttribute('cy') || '0');
-          const rx = parseFloat(el.getAttribute('rx') || '0');
-          const ry = parseFloat(el.getAttribute('ry') || '0');
-          if (rx > 0 && ry > 0) {
-            const kx = 0.5522847498 * rx;
-            const ky = 0.5522847498 * ry;
-            d = `M ${cx} ${cy - ry} C ${cx + kx} ${cy - ry} ${cx + rx} ${cy - ky} ${cx + rx} ${cy} C ${cx + rx} ${cy + ky} ${cx + kx} ${cy + ry} ${cx} ${cy + ry} C ${cx - kx} ${cy + ry} ${cx - rx} ${cy + ky} ${cx - rx} ${cy} C ${cx - rx} ${cy - ky} ${cx - kx} ${cy - ry} ${cx} ${cy - ry} Z`;
-          }
-        }
-
-        if (!d.trim()) return;
-
-        // Parse colors & opacity
-        const style = el.getAttribute('style') || '';
-        const fillAttr = el.getAttribute('fill') || '';
-
-        let fillVal = fillAttr;
-        const fillMatch = style.match(/fill:\s*([^;]+)/i);
-        if (fillMatch) fillVal = fillMatch[1];
-        if (!fillVal || fillVal === 'none') {
-          const strokeAttr = el.getAttribute('stroke') || '';
-          const strokeMatch = style.match(/stroke:\s*([^;]+)/i);
-          const strokeVal = strokeMatch ? strokeMatch[1] : strokeAttr;
-          if (strokeVal && strokeVal !== 'none') {
-            fillVal = strokeVal;
-          } else {
-            fillVal = '#000000';
-          }
-        }
-
-        const { hex: fillHex, hexRRGGBB, argb: argbHex, alpha } = parseColorToArgb(fillVal);
-
-        if (alpha < 0.05) return;
-
-        // Calculate cumulative transformation matrix from root <svg> down to this element
-        const transformMatrix = getCumulativeTransform(el, svgEl);
-
-        rawPaths.push({
-          d,
-          fillHex,
-          hexRRGGBB,
-          argbHex,
-          opacity: alpha,
-          originalIndex: elementIdx++,
-          transformMatrix,
-        });
-      });
-
-      if (rawPaths.length === 0) return [];
-
-      // 3. Normalize each path to Alight Motion coordinates with true cumulative transform applied
-      const candidateShapes: AlightPathShape[] = [];
-
-      rawPaths.forEach((p, idx) => {
-        const norm = normalizePathToAlightMotion(p.d, scale, offsetX, offsetY, p.transformMatrix);
-        if (norm && norm.normalizedPath) {
-          // Filter background putih/transparan jika toggle ON (layer > 85% area vektor atau > 60% kanvas)
-          const isFullBackground =
-            norm.area > vbW * vbH * scale * scale * 0.85 ||
-            norm.area > canvasW * canvasH * 0.60;
-
-          if (ignoreWhiteBackground && isNearWhite(p.hexRRGGBB) && isFullBackground) {
-            return;
+          } else if (tag === 'rect') {
+            const x = parseFloat(el.getAttribute('x') || '0');
+            const y = parseFloat(el.getAttribute('y') || '0');
+            const w = parseFloat(el.getAttribute('width') || '0');
+            const h = parseFloat(el.getAttribute('height') || '0');
+            if (w > 0 && h > 0) {
+              d = `M ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`;
+            }
+          } else if (tag === 'circle') {
+            const cx = parseFloat(el.getAttribute('cx') || '0');
+            const cy = parseFloat(el.getAttribute('cy') || '0');
+            const r = parseFloat(el.getAttribute('r') || '0');
+            if (r > 0) {
+              const k = 0.5522847498 * r;
+              d = `M ${cx} ${cy - r} C ${cx + k} ${cy - r} ${cx + r} ${cy - k} ${cx + r} ${cy} C ${cx + r} ${cy + k} ${cx + k} ${cy + r} ${cx} ${cy + r} C ${cx - k} ${cy + r} ${cx - r} ${cy + k} ${cx - r} ${cy} C ${cx - r} ${cy - k} ${cx - k} ${cy - r} ${cx} ${cy - r} Z`;
+            }
+          } else if (tag === 'ellipse') {
+            const cx = parseFloat(el.getAttribute('cx') || '0');
+            const cy = parseFloat(el.getAttribute('cy') || '0');
+            const rx = parseFloat(el.getAttribute('rx') || '0');
+            const ry = parseFloat(el.getAttribute('ry') || '0');
+            if (rx > 0 && ry > 0) {
+              const kx = 0.5522847498 * rx;
+              const ky = 0.5522847498 * ry;
+              d = `M ${cx} ${cy - ry} C ${cx + kx} ${cy - ry} ${cx + rx} ${cy - ky} ${cx + rx} ${cy} C ${cx + rx} ${cy + ky} ${cx + kx} ${cy + ry} ${cx} ${cy + ry} C ${cx - kx} ${cy + ry} ${cx - rx} ${cy + ky} ${cx - rx} ${cy} C ${cx - rx} ${cy - ky} ${cx - kx} ${cy - ry} ${cx} ${cy - ry} Z`;
+            }
           }
 
-          candidateShapes.push({
-            id: 1000001 + idx,
-            label: `Shape_${idx + 1}`,
-            centerX: norm.centerX,
-            centerY: norm.centerY,
-            relativeD: norm.normalizedPath,
-            hexRRGGBB: p.hexRRGGBB,
-            argbHex: p.argbHex,
-            opacity: p.opacity,
-            area: norm.area,
-            originalIndex: p.originalIndex,
+          if (!d.trim()) return;
+
+          // Parse colors & opacity
+          const style = el.getAttribute('style') || '';
+          const fillAttr = el.getAttribute('fill') || '';
+
+          let fillVal = fillAttr;
+          const fillMatch = style.match(/fill:\s*([^;]+)/i);
+          if (fillMatch) fillVal = fillMatch[1];
+          if (!fillVal || fillVal === 'none') {
+            const strokeAttr = el.getAttribute('stroke') || '';
+            const strokeMatch = style.match(/stroke:\s*([^;]+)/i);
+            const strokeVal = strokeMatch ? strokeMatch[1] : strokeAttr;
+            if (strokeVal && strokeVal !== 'none') {
+              fillVal = strokeVal;
+            } else {
+              fillVal = '#000000';
+            }
+          }
+
+          const { hex: fillHex, hexRRGGBB, argb: argbHex, alpha } = parseColorToArgb(fillVal);
+
+          if (alpha < 0.05) return;
+
+          // Calculate cumulative transformation matrix from root <svg> down to this element
+          const transformMatrix = getCumulativeTransform(el, svgEl);
+
+          rawPaths.push({
+            d,
+            fillHex,
+            hexRRGGBB,
+            argbHex,
+            opacity: alpha,
+            originalIndex: elementIdx++,
+            transformMatrix,
           });
+        });
+
+        if (rawPaths.length === 0) return [];
+
+        // 3. Normalize each path to Alight Motion coordinates with true cumulative transform applied
+        const candidateShapes: AlightPathShape[] = [];
+
+        rawPaths.forEach((p, idx) => {
+          const norm = normalizePathToAlightMotion(p.d, scale, offsetX, offsetY, p.transformMatrix);
+          if (norm && norm.normalizedPath) {
+            // Filter background putih/transparan jika toggle ON (layer > 85% area vektor atau > 60% kanvas)
+            const isFullBackground =
+              norm.area > vbW * vbH * scale * scale * 0.85 ||
+              norm.area > canvasW * canvasH * 0.60;
+
+            if (ignoreWhiteBackground && isNearWhite(p.hexRRGGBB) && isFullBackground) {
+              return;
+            }
+
+            candidateShapes.push({
+              id: 1000001 + idx,
+              label: `Shape_${idx + 1}`,
+              centerX: norm.centerX,
+              centerY: norm.centerY,
+              relativeD: norm.normalizedPath,
+              hexRRGGBB: p.hexRRGGBB,
+              argbHex: p.argbHex,
+              opacity: p.opacity,
+              area: norm.area,
+              originalIndex: p.originalIndex,
+            });
+          }
+        });
+
+        // 4. Urutan Z-Index Presisi:
+        // - Untuk file .SVG asli: pertahankan urutan render dokumen SVG asli (originalIndex)
+        //   agar susunan layer desain tetap presisi tanpa tertukar.
+        // - Untuk hasil trace foto PNG/JPG: urutkan berdasarkan luas bounding-box secara descending (b.area - a.area)
+        //   agar background berada di bawah dan detail huruf/mata tetap tajam di atas.
+        let finalSorted: AlightPathShape[] = [];
+        if (sourceType === 'svg') {
+          finalSorted = [...candidateShapes].sort((a, b) => a.originalIndex - b.originalIndex);
+        } else {
+          finalSorted = [...candidateShapes].sort((a, b) => b.area - a.area);
         }
-      });
 
-      // 4. Urutan Z-Index Presisi:
-      // - Untuk file .SVG asli: pertahankan urutan render dokumen SVG asli (originalIndex)
-      //   agar susunan layer desain tetap presisi tanpa tertukar.
-      // - Untuk hasil trace foto PNG/JPG: urutkan berdasarkan luas bounding-box secara descending (b.area - a.area)
-      //   agar background berada di bawah dan detail huruf/mata tetap tajam di atas.
-      let finalSorted: AlightPathShape[] = [];
-      if (sourceType === 'svg') {
-        finalSorted = [...candidateShapes].sort((a, b) => a.originalIndex - b.originalIndex);
-      } else {
-        finalSorted = [...candidateShapes].sort((a, b) => b.area - a.area);
+        // Cap according to quality preset (max ~380 layers)
+        const config = QUALITY_CONFIGS[qualityPreset] || QUALITY_CONFIGS.ultra;
+        const capped = finalSorted.slice(0, config.maxLayers);
+
+        // Re-index labels strictly as Shape_1, Shape_2, ..., Shape_N with id starting at 1
+        return capped.map((s, i) => ({
+          ...s,
+          id: i + 1,
+          label: `Shape_${i + 1}`,
+        }));
+      } catch (err) {
+        console.error('convertSvgToAlightShapes error:', err);
+        return [];
       }
-
-      // Cap according to quality preset (max ~380 layers)
-      const config = QUALITY_CONFIGS[qualityPreset];
-      const capped = finalSorted.slice(0, config.maxLayers);
-
-      // Re-index labels strictly as Shape_1, Shape_2, ..., Shape_N with id starting at 1
-      return capped.map((s, i) => ({
-        ...s,
-        id: i + 1,
-        label: `Shape_${i + 1}`,
-      }));
-    } catch (err) {
-      console.error('convertSvgToAlightShapes error:', err);
-      return [];
-    }
-  },
-  [canvasRatio, qualityPreset, ignoreWhiteBackground, sourceType]
-);
+    },
+    [canvasRatio, qualityPreset, ignoreWhiteBackground, sourceType]
+  );
 
   /**
    * Generates official Alight Motion XML 100% identical to Alight Motion 6.2.60 schema:
@@ -749,7 +757,7 @@ ${shapesXml}
 
   // Traces raster image to SVG: Prioritizes Ultra-Sharp VTracer Rust backend with high-res client fallback
   const traceImageToSvg = async (file: File, preset: QualityPreset) => {
-    const config = QUALITY_CONFIGS[preset];
+    const config = QUALITY_CONFIGS[preset] || QUALITY_CONFIGS.ultra;
 
     // 1. Try VTracer Rust Backend for ultra-sharp vectorization (no downscaling below 1024px)
     try {
@@ -862,7 +870,8 @@ ${shapesXml}
     // CASE 2: RASTER PHOTO (PNG, JPG, WebP) -> Auto Image-to-SVG Tracing
     if (file.type.startsWith('image/')) {
       setSourceType('raster');
-      setStatusText(`Melakukan auto-tracing foto ke layer vektor (${QUALITY_CONFIGS[qualityPreset].label})...`);
+      const labelText = (QUALITY_CONFIGS[qualityPreset] || QUALITY_CONFIGS.ultra).label;
+      setStatusText(`Melakukan auto-tracing foto ke layer vektor (${labelText})...`);
 
       try {
         const svgStr = await traceImageToSvg(file, qualityPreset);
@@ -883,7 +892,8 @@ ${shapesXml}
     setQualityPreset(newPreset);
     if (sourceType === 'raster' && activeImageFileRef.current) {
       setIsProcessing(true);
-      setStatusText(`Memperbarui tracing vektor (${QUALITY_CONFIGS[newPreset].label})...`);
+      const labelText = (QUALITY_CONFIGS[newPreset] || QUALITY_CONFIGS.ultra).label;
+      setStatusText(`Memperbarui tracing vektor (${labelText})...`);
       try {
         const svgStr = await traceImageToSvg(activeImageFileRef.current, newPreset);
         setSvgRawString(svgStr);
@@ -1184,8 +1194,9 @@ ${shapesXml}
                 </span>
               </div>
               <div className="space-y-2">
-                {(['light', 'standard', 'high'] as QualityPreset[]).map((preset) => {
+                {(['ultra', 'standard', 'light'] as QualityPreset[]).map((preset) => {
                   const cfg = QUALITY_CONFIGS[preset];
+                  if (!cfg) return null;
                   const active = qualityPreset === preset;
                   return (
                     <button
